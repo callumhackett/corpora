@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 import re
 import streamlit as st
@@ -13,8 +14,8 @@ with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
 
 num_questions = len(questions)
 
-case_insensitive = st.toggle('Ignore case')
-case_flag = re.IGNORECASE if case_insensitive else 0
+case_sensitive = st.toggle('Case sensitive')
+case_flag = re.IGNORECASE if not case_sensitive else 0
 
 query = st.text_input('Search term: ').strip().replace("*", "\w+")
 query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
@@ -28,16 +29,14 @@ if "Questions" in sources:
         match = re.search(query_re, q)
         if query != "" and match:
             match_count += 1
-            matches.append((match, q))
-
-
+            matches.append((match.group(0), q))
 
     st.markdown(f"### Questions Results ({match_count})")
     for m in matches:
         st.markdown(
             re.sub(
                 query_re,
-                "<span style=\"background-color: #FFFF00; color:#000000\">"+m[0].group(0)+"</span>",
+                "<u>"+m[0]+"</u>",
                 m[1]
             ),
             unsafe_allow_html=True
