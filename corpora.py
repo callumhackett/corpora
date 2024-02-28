@@ -18,7 +18,7 @@ if "Questions" in sources:
 
     for q in questions:
         if query != "" and query.lower() in q.lower():
-            st.markdown(q.replace(query, "**"+query+"**"))
+            st.markdown(q.replace(query, f"<ins>{query}</ins>"))
 
 if "Contexts" in sources:
 
