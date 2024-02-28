@@ -1,4 +1,5 @@
 import json
+import re
 import streamlit as st
 
 st.markdown("# Corpus Search")
@@ -11,14 +12,16 @@ with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
     questions = [line.rstrip() for line in data]
 
 query = st.text_input('Search term: ')
+query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE)
 
 if "Questions" in sources:
 
     st.markdown("# Questions Results")
 
     for q in questions:
-        if query != "" and query.lower() in q.lower():
-            st.markdown(q.replace(query, "**"+query+"**"))
+        match = re.search(query_re, q)
+        if query != "" and match:
+            st.markdown(re.sub(query, "**"+match.group(0)+"**", q, flags=re.IGNORECASE))
 
 if "Contexts" in sources:
 
