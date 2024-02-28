@@ -1,3 +1,6 @@
 import streamlit as st
 
-st.write("""test app""")
+with open("corpus.txt") as f:
+    text = f.read()
+
+st.write(text)
