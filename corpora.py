@@ -1,6 +1,12 @@
+import json
 import streamlit as st
 
-with open("corpus.txt") as f:
-    text = f.read()
+"""
+with open("hotpot_train_v1.1.json") as f:
+    data = json.load(f)
+"""
 
-st.write(text)
+with open("hotpot_train_v1.1_questions.txt") as questions:
+    data = questions.read()
+
+print(data)
