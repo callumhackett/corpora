@@ -13,6 +13,11 @@ with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
 
 query = st.text_input('Search term: ')
 query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE)
+case_insensitive = st.toggle('Ignore case')
+case_flag = re.IGNORECASE if case_insensitive else 0
+
+query = st.text_input('Search term: ').strip().replace("*", "\w+")
+query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
 
 if "Questions" in sources:
 
