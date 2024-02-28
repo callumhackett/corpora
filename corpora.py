@@ -21,12 +21,27 @@ query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
 
 if "Questions" in sources:
 
-    st.markdown("# Questions Results")
+    matches = []
+    match_count = 0
 
     for q in questions:
         match = re.search(query_re, q)
         if query != "" and match:
-            st.markdown(re.sub(query, "**"+match.group(0)+"**", q, flags=re.IGNORECASE))
+            match_count += 1
+            matches.append((match, q))
+
+
+
+    st.markdown(f"### Questions Results ({match_count})")
+    for m in matches:
+        st.markdown(
+            re.sub(
+                query_re,
+                "<span style=\"background-color: #FFFF00; color:#000000\">"+m[0].group(0)+"</span>",
+                m[1]
+            ),
+            unsafe_allow_html=True
+        )
 
 if "Contexts" in sources:
 
