@@ -11,8 +11,8 @@ sources = st.multiselect("Data sources:", ["Questions", "Contexts"])
 with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
     questions = [line.rstrip() for line in data]
 
-query = st.text_input('Search term: ')
-query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE)
+num_questions = len(questions)
+
 case_insensitive = st.toggle('Ignore case')
 case_flag = re.IGNORECASE if case_insensitive else 0
 
