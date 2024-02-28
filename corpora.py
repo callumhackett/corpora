@@ -1,10 +1,7 @@
 import json
 import streamlit as st
 
-"""
-with open("hotpot_train_v1.1.json") as f:
-    data = json.load(f)
-"""
+st.markdown("# Corpus Search")
 
 with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
     questions = [line.rstrip() for line in data]
