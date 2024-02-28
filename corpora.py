@@ -9,4 +9,4 @@ with open("hotpot_train_v1.1.json") as f:
 with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as questions:
     data = questions.read()
 
-st.write("hi")
+st.write(data[:100])
