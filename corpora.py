@@ -12,5 +12,5 @@ with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
 query = st.text_input('Search term: ')
 
 for q in questions:
-    if query in q:
+    if query not in q:
         st.write(q)
