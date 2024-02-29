@@ -1,6 +1,7 @@
 from collections import Counter
 import json
 import re
+import pandas as pd
 import streamlit as st
 
 st.markdown("# Corpus Search")
@@ -20,28 +21,46 @@ case_flag = re.IGNORECASE if not case_sensitive else 0
 query = st.text_input('Search term: ').strip().replace("*", "\w+")
 query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
 
-if "Questions" in sources:
+if query:
+    if "Questions" in sources:
 
-    matches = []
-    match_count = 0
+        matches = []
+        match_count = 0
 
-    for q in questions:
-        match = re.search(query_re, q)
-        if query != "" and match:
-            match_count += 1
-            matches.append((match.group(0), q))
+        for q in questions:
+            match = re.findall(query_re, q)
+            if query != "" and match:
+                match_count += len(match)
+                matches.append((match, q))
 
-    st.markdown(f"### Questions Results ({match_count})")
-    for m in matches:
-        st.markdown(
-            re.sub(
-                query_re,
-                "<u>"+m[0]+"</u>",
-                m[1]
-            ),
-            unsafe_allow_html=True
-        )
+        text_hits, _ = zip(*matches)
+        all_hits = [x for xs in text_hits for x in xs]
+        if not case_sensitive:
+            all_hits = [t.lower() for t in all_hits]
+        hit_counts = Counter(all_hits)
+        num_unique_hits = len(hit_counts)
+        hit_df = pd.DataFrame(
+            {"Hit": hit_counts.keys(), "Count": hit_counts.values()}
+        ).sort_values(by=["Count", "Hit"], ascending=False).reset_index(drop=True)
 
-if "Contexts" in sources:
+        st.markdown(f"Unique hits: {len(hit_df)}")
+        st.dataframe(hit_df)
+        st.dataframe(hit_df["Count"].describe().to_frame().transpose()[["mean", "std", "min", "max"]])
 
-    st.write("Context data not ready yet")
+        st.markdown(f"### Questions Results ({match_count})")
+        for m in matches:
+            original_str = m[1]
+            for single_hit in m[0]:
+                original_str = re.sub(
+                    single_hit,
+                    "<u>"+single_hit+"</u>",
+                    original_str
+                )
+            st.markdown(
+                original_str,
+                unsafe_allow_html=True
+            )
+
+    if "Contexts" in sources:
+
+        st.write("Context data not ready yet")
