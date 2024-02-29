@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import streamlit as st
 
-LIMIT_DIVISOR = 10 # factor by which to reduce the corpus size to improve search speed
+LIMIT_DIVISOR = 20 # factor by which to reduce the corpus size to improve search speed
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
