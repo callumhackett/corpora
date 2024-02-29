@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 DATASETS = ["HotpotQA Full", "HotpotQA Questions", "HotpotQA Contexts"]
+DATASET_SIZES = {"HotpotQA Questions":90447, "HotpotQA Contxts":899667}
 
 def compile_data(source):
     data = []
@@ -26,7 +27,10 @@ def find_matches(query, case_flag, data):
         match = re.findall(query_re, entry)
         if match:
             for m in match:
-                match_counts[m] += 1
+                if case_flag == re.IGNORECASE:
+                    match_counts[m.lower()] += 1
+                else:
+                    match_counts[m] += 1
             match_contexts.append(entry)
     return match_counts, match_contexts
 
@@ -34,7 +38,7 @@ def find_matches(query, case_flag, data):
 st.markdown("### Corpus Search")
 source = st.radio("**Data source**:", DATASETS)
 data = compile_data(source)
-query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "(\w|-)+")
+query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
 case_sensitive = st.toggle("case-sensitive")
 case_flag = re.IGNORECASE if not case_sensitive else 0
 
@@ -42,17 +46,17 @@ if query != "":
     # matches
     match_counts, match_contexts = find_matches(query, case_flag, data)
     match_strings = len(match_counts)
+    entry_count = len(match_contexts)
+    dataset_size = DATASET_SIZES[source]
 
     # stats
-    hit_df = pd.DataFrame(
-        {"Hit": match_counts.keys(), "Count": match_counts.values()}
-    ).sort_values(by=["Count", "Hit"], ascending=False).reset_index(drop=True)
-
-    st.markdown(f"Unique hits: {len(hit_df)}")
-    st.dataframe(hit_df, column_config={"Hit": st.column_config.TextColumn()})
+    string_stats = pd.DataFrame(
+        {"match": match_counts.keys(), "count": match_counts.values()}
+    ).sort_values(by=["count", "match"], ascending=False).reset_index(drop=True)
+    st.dataframe(string_stats, column_config={"Hit": st.column_config.TextColumn()})
 
     # results
-    st.markdown(f"#### Results ({sum(match_counts.values())})")
-    
+    st.markdown(f"#### Results")
+    st.markdown(f"*There are matches in {entry_count} of the {DATASET_SIZES[source]} entries in your chosen data source ({round(100*(entry_count/dataset_size), 2)}%)*")
     for context in match_contexts:
         st.write(context)
