@@ -4,11 +4,11 @@ import re
 import pandas as pd
 import streamlit as st
 
-st.markdown("# Corpus Search")
+st.markdown("### Corpus Search")
 
 # to do: change sources and present them as something other than dropdown list
 # to do: have associated choice for max number of results per source
-sources = st.multiselect("Data sources:", ["Questions", "Contexts"])
+sources = st.multiselect("Data sources:", ["HotpotQA Questions", "HotpotQA Contexts"])
 
 with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
     questions = [line.rstrip() for line in data]
