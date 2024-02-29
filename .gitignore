@@ -1,8 +1,7 @@
-hotpot_train_v1.1.json
-processing.py
-data/hotpot_train_v1.1_contexts_1.txt
+data/hotpot_train_v1.1.json
 data/hotpot_train_v1.1_contexts_2.txt
 data/hotpot_train_v1.1_contexts_3.txt
 data/hotpot_train_v1.1_contexts_4.txt
 data/hotpot_train_v1.1_contexts_5.txt
 data/hotpot_train_v1.1_contexts_6.txt
+processing.py
