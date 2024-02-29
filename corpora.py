@@ -29,8 +29,6 @@ def find_matches(query, case_flag, data):
             match_count += len(match)
     return matches, match_count
 
-[([match, match], "example"), ([], "")]
-
 # User Interface
 st.markdown("### Corpus Search")
 source = st.radio("**Data source**:", DATASETS)
@@ -40,6 +38,7 @@ case_sensitive = st.toggle("case-sensitive")
 case_flag = re.IGNORECASE if not case_sensitive else 0
 
 if query != "":
+    # matches
     matches, match_count = find_matches(query, case_flag, data)
     matches_per_entry = [match[0] for match in matches]
     matches_compiled = []
@@ -48,6 +47,8 @@ if query != "":
             matches_compiled.append(match)
     if not case_sensitive:
         all_hits = [t.lower() for t in all_hits]
+
+    # stats
     hit_counts = Counter(all_hits)
     num_unique_hits = len(hit_counts)
     hit_df = pd.DataFrame(
@@ -58,7 +59,7 @@ if query != "":
     st.dataframe(hit_df, column_config={"Hit": st.column_config.TextColumn()})
     st.dataframe(hit_df["Count"].describe().to_frame().transpose()[["mean", "std", "min", "max"]])
 
-    # underline the hits
+    # results
     st.markdown(f"#### Results ({match_count})")
     for hits, original_str in matches:
         for single_hit in hits:
