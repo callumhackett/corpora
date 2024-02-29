@@ -1,4 +1,3 @@
-from collections import Counter
 import json
 import re
 import pandas as pd
@@ -21,13 +20,11 @@ def compile_data(source):
 def find_matches(query, case_flag, data):
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     matches = []
-    match_count = 0
     for entry in data:
         match = re.findall(query_re, entry)
         if match:
             matches.append((match, entry))
-            match_count += len(match)
-    return matches, match_count
+    return matches
 
 # User Interface
 st.markdown("### Corpus Search")
@@ -39,20 +36,13 @@ case_flag = re.IGNORECASE if not case_sensitive else 0
 
 if query != "":
     # matches
-    matches, match_count = find_matches(query, case_flag, data)
-    matches_per_entry = [match[0] for match in matches]
-    matches_compiled = []
-    for batch in matches_per_entry:
-        for match in batch:
-            matches_compiled.append(match)
-    if not case_sensitive:
-        all_hits = [t.lower() for t in all_hits]
+    matches = find_matches(query, case_flag, data)
 
     # stats
-    hit_counts = Counter(all_hits)
-    num_unique_hits = len(hit_counts)
+    match_counts = Counter(matches)
+    unique_match_count = len(match_counts)
     hit_df = pd.DataFrame(
-        {"Hit": hit_counts.keys(), "Count": hit_counts.values()}
+        {"Hit": match_counts.keys(), "Count": match_counts.values()}
     ).sort_values(by=["Count", "Hit"], ascending=False).reset_index(drop=True)
 
     st.markdown(f"Unique hits: {len(hit_df)}")
@@ -60,7 +50,8 @@ if query != "":
     st.dataframe(hit_df["Count"].describe().to_frame().transpose()[["mean", "std", "min", "max"]])
 
     # results
-    st.markdown(f"#### Results ({match_count})")
+    st.markdown(f"#### Results ({len(matches_compiled)})")
+    
     for hits, original_str in matches:
         for single_hit in hits:
             original_str = re.sub(
