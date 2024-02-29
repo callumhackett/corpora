@@ -54,7 +54,7 @@ if query != "":
     entry_count = len(match_contexts)
     dataset_size = DATASET_SIZES[source]
 
-    # stats
+    # statistics
     string_stats = pd.DataFrame(
         {"match": match_counts.keys(), "count": match_counts.values()}
     ).sort_values(by=["count", "match"], ascending=False).reset_index(drop=True)
