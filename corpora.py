@@ -4,25 +4,39 @@ import re
 import pandas as pd
 import streamlit as st
 
-DATASET_SIZES = {"HotpotQA Questions":90447, "HotpotQA Contexts":899667}
+LIMIT_DIVISOR = 10 # factor by which to reduce the corpus size to improve search speed
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
 @st.cache_data
-def compile_data(sources):
+def compile_data(sources, limit=False):
     """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
     data = []
     if "HotpotQA Questions" in sources:
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
+            count = 0
+            if limit:
+                for line in f:
+                    if count % LIMIT_DIVISOR == 0:
+                        data.append(line)
+                    count += 1
+            else:
+                for line in f:
+                    data.append(line)
     if "HotpotQA Contexts" in sources:
         for filename in os.listdir("data"):
             if "hotpot" in filename and "contexts" in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
-                    for line in f:
-                        data.append(line)
-    return data
+                    count = 0
+                    if limit:
+                        for line in f:
+                            if count % LIMIT_DIVISOR == 0:
+                                data.append(line)
+                            count += 1
+                    else:
+                        for line in f:
+                            data.append(line)
+    return data, len(data)
 
 @st.cache_data
 def find_matches(query_re, data):
@@ -54,6 +68,7 @@ with parameters:
     if st.checkbox("HotpotQA Contexts"):
         sources.append("HotpotQA Contexts")
     case_sensitive = st.toggle("case-sensitive search")
+    corpus_subset = st.toggle("corpus subset (less data; faster search)")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
     st.caption("*only training data is used in this tool*")
@@ -70,7 +85,7 @@ with statistics:
 if query != "":
     # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
-    data = compile_data(sources)
+    data, dataset_size = compile_data(sources, limit=corpus_subset)
     match_counts, match_entries = find_matches(query_re, data)
 
     # return
@@ -81,9 +96,6 @@ if query != "":
     # statistics
     with statistics:
         entry_count = len(match_entries)
-        dataset_size = 0
-        for key in sources:
-            dataset_size += DATASET_SIZES[key]
         if dataset_size != 0:
             st.markdown(f"{round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.")
         if entry_count > 10000:
