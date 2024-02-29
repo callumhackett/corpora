@@ -24,7 +24,7 @@ def compile_data(source):
     return data
 
 @st.cache_data
-def find_matches(query, case_flag, data):
+def find_matches(query, case_flag, source):
     data = compile_data(source)
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     match_counts = Counter()
@@ -49,7 +49,7 @@ query = st.text_input("**Search term (use * as a wildcard):**").strip().replace(
 
 if query != "":
     # matches
-    match_counts, match_contexts = find_matches(query, case_flag, data)
+    match_counts, match_contexts = find_matches(query, case_flag, source)
     match_strings = len(match_counts)
     entry_count = len(match_contexts)
     dataset_size = DATASET_SIZES[source]
