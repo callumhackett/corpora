@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 DATASETS = ["HotpotQA Full", "HotpotQA Questions", "HotpotQA Contexts"]
-DATASET_SIZES = {"HotpotQA Full":990114, "HotpotQA Questions":90447, "HotpotQA Contxts":899667}
+DATASET_SIZES = {"HotpotQA Full":990114, "HotpotQA Questions":90447, "HotpotQA Contexts":899667}
 
 @st.cache_data
 def compile_data(source):
