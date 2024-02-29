@@ -1,12 +1,14 @@
 from collections import Counter
 import json
+import os
 import re
 import pandas as pd
 import streamlit as st
 
 DATASETS = ["HotpotQA Full", "HotpotQA Questions", "HotpotQA Contexts"]
-DATASET_SIZES = {"HotpotQA Questions":90447, "HotpotQA Contxts":899667}
+DATASET_SIZES = {"HotpotQA Full":990114, "HotpotQA Questions":90447, "HotpotQA Contxts":899667}
 
+@st.cache_data
 def compile_data(source):
     data = []
     if source in ["HotpotQA Full", "HotpotQA Questions"]:
@@ -14,9 +16,11 @@ def compile_data(source):
             for line in f:
                 data.append(line)
     if source in ["HotpotQA Full", "HotpotQA Contexts"]:
-        with open("data/hotpot_train_v1.1_contexts1.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
+        for filename in os.listdir("data"):
+            if filename.startswith("hotpot") and "contexts" in filename:
+                with open(os.path.join("data", filename), encoding="utf-8") as f:
+                    for line in f:
+                        data.append(line)
     return data
 
 def find_matches(query, case_flag, data):
@@ -57,6 +61,6 @@ if query != "":
 
     # results
     st.markdown(f"#### Results")
-    st.markdown(f"*There are matches in {entry_count} of the {DATASET_SIZES[source]} entries in your chosen data source ({round(100*(entry_count/dataset_size), 2)}%)*")
-    for context in match_contexts:
+    st.markdown(f"*There are matches in {entry_count} of the {DATASET_SIZES[source]} entries in your chosen data source ({round(100*(entry_count/dataset_size), 2)}%). Here are the first {len(match_contexts[:200])}:*")
+    for context in match_contexts[:200]:
         st.write(context)
