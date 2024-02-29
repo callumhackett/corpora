@@ -23,7 +23,9 @@ def compile_data(source):
                         data.append(line)
     return data
 
+@st.cache_data
 def find_matches(query, case_flag, data):
+    data = compile_data(source)
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     match_counts = Counter()
     match_contexts = []
@@ -41,10 +43,9 @@ def find_matches(query, case_flag, data):
 # User Interface
 st.markdown("### Corpus Search")
 source = st.radio("**Data source**:", DATASETS)
-data = compile_data(source)
-query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
 case_sensitive = st.toggle("case-sensitive")
 case_flag = re.IGNORECASE if not case_sensitive else 0
+query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
 
 if query != "":
     # matches
