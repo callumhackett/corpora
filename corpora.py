@@ -5,15 +5,12 @@ import pandas as pd
 import streamlit as st
 
 DATASET_SIZES = {"HotpotQA Questions":90447, "HotpotQA Contexts":899667}
-RESULTS_PER_PAGE = 10
 
 st.set_page_config(page_title="Corpora", layout="wide")
-if "page" not in st.session_state:
-    st.session_state["page"] = 0
 
 @st.cache_data
 def compile_data(sources):
-    """Compile data into a single list from sources chosen by checkbox."""
+    """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
     data = []
     if "HotpotQA Questions" in sources:
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
@@ -29,9 +26,9 @@ def compile_data(sources):
 
 @st.cache_data
 def find_matches(query_re, data):
-    count = 1
+    """Find and count all individual matches for a RegEx in each data entry."""
     match_counts = Counter()
-    match_contexts = []
+    match_entries = []
     for entry in data:
         match = re.findall(query_re, entry)
         if match:
@@ -41,74 +38,63 @@ def find_matches(query_re, data):
                 else:
                     match_counts[m] += 1
             for m in set(match):
-                entry = entry.replace(m, ":red[**" + m + "**]")
-            match_contexts.append(str(count) + entry)
-            count += 1
-    return match_counts, match_contexts
+                entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
+            match_entries.append(entry.strip())
+    return match_counts, match_entries
 
-def reset_page():
-    st.session_state["page"] = 0
+parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large")
 
-def write_results_batch(data, page):
-    start_index = page * RESULTS_PER_PAGE
-    end_index = min(start_index + RESULTS_PER_PAGE, len(data))
-    for match in data[start_index:end_index]:
-        st.write(match)
-    if len(data[start_index:]) > RESULTS_PER_PAGE:   
-        if st.button("Load more", key=st.session_state["page"]):
-            st.session_state["page"] += 1
-            with results.container():
-                write_results_batch(data, st.session_state["page"])
-
-column1, column2, column3 = st.columns(spec=[0.2, 0.5, 0.3], gap="large")
-
-# User Interface
-with column1:
-    st.markdown("#### Search Settings")
+# Main User Interface
+with parameters:
+    st.markdown("#### Search Parameters")
     st.markdown("**Sources**:")
     sources = []
-    if st.checkbox("HotpotQA Questions", on_change=reset_page):
+    if st.checkbox("HotpotQA Questions"):
         sources.append("HotpotQA Questions")
     if st.checkbox("HotpotQA Contexts"):
-        sources.append("HotpotQA Contexts", on_change=reset_page)
-    case_sensitive = st.toggle("case-sensitive search", on_change=reset_page)
+        sources.append("HotpotQA Contexts")
+    case_sensitive = st.toggle("case-sensitive search")
     case_flag = re.IGNORECASE if not case_sensitive else 0
-    query = st.text_input("**Search term (use * as a wildcard):**", on_change=reset_page).strip().replace("*", "[\w|-]+")
-    st.caption("*only training sets are used in this tool*")
+    query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
+    st.caption("*only training data is used in this tool*")
 
-with column2:
+with results:
     st.markdown(f"#### Results")
     st.write("*Select a data source, type a search term, then press Enter*")
-    results = st.empty()
+    results_container = st.container(height=500, border=False)
 
-if query.strip() != "":
-    # matches
+with statistics:
+    st.markdown("#### Statistics")
+
+# Search Execution
+if query != "":
+    # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     data = compile_data(sources)
-    match_counts, match_contexts = find_matches(query_re, data)
-    match_strings = len(match_counts)
-    entry_count = len(match_contexts)
-    dataset_size = 0
-    for key in sources:
-        dataset_size += DATASET_SIZES[key]
+    match_counts, match_entries = find_matches(query_re, data)
 
-    # results
-    with results.container():
-        write_results_batch(match_contexts, st.session_state["page"])
+    # return
+    with results_container.container():
+        results_table = pd.DataFrame({"": match_entries[:10000]})
+        st.markdown(results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True)
 
     # statistics
-    with column3:
-        st.markdown("#### Statistics")
-        st.markdown(f"""
-                    {round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.\n
-                    {len(match_counts):,} unique string(s) were matched:
-                    """
-                    )
-        string_stats = pd.DataFrame(
+    with statistics:
+        entry_count = len(match_entries)
+        dataset_size = 0
+        for key in sources:
+            dataset_size += DATASET_SIZES[key]
+        if dataset_size != 0:
+            st.markdown(f"{round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.")
+        if entry_count > 10000:
+            st.markdown(f"Because of the large number of matches, the returned texts have been capped at 10,000.")
+        st.markdown(f"{len(match_counts):,} unique string(s) had hits:")
+        stats_table = pd.DataFrame(
             {"string": match_counts.keys(), "count": match_counts.values()}
         ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
-        st.dataframe(string_stats, column_config={"Hit": st.column_config.TextColumn()}, use_container_width=True)
-        st.caption("""
-                   For HotpotQA, each of the multiple contexts per question counts as one entry. 
-                   The headline percentage is a slight underestimate when contexts are included because of some data formatting issues.
-                   """)
+        st.dataframe(stats_table, column_config={"_index": None, "Hit": st.column_config.TextColumn()}, use_container_width=True)
+        if "HotpotQA Contexts" in sources:
+            st.caption("""
+                    For HotpotQA contexts, each of the multiple contexts per question is counted as one entry. 
+                    The headline percentage is a slight underestimate because of some data format issues.
+                    """)
