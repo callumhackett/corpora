@@ -10,7 +10,7 @@ st.markdown("### Corpus Search")
 # to do: have associated choice for max number of results per source
 sources = st.multiselect("Data sources:", ["HotpotQA Questions", "HotpotQA Contexts"])
 
-with open("hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
+with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as data:
     questions = [line.rstrip() for line in data]
 
 num_questions = len(questions)
