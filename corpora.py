@@ -22,7 +22,7 @@ query = st.text_input('Search term: ').strip().replace("*", "\w+")
 query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
 
 if query:
-    if "Questions" in sources:
+    if "HotpotQA Questions" in sources:
 
         matches = []
         match_count = 0
@@ -50,7 +50,7 @@ if query:
         st.dataframe(hit_df["Count"].describe().to_frame().transpose()[["mean", "std", "min", "max"]])
 
         # Underscore the hits
-        st.markdown(f"### Questions Results ({match_count})")
+        st.markdown(f"#### Questions Results ({match_count})")
         for hits, original_str in matches:
             for single_hit in hits:
                 original_str = re.sub(
@@ -63,6 +63,6 @@ if query:
                 unsafe_allow_html=True
             )
 
-    if "Contexts" in sources:
+    if "HotpotQA Contexts" in sources:
 
         st.write("Context data not ready yet")
