@@ -27,12 +27,14 @@ if query:
         matches = []
         match_count = 0
 
+        # Find the matches
         for q in questions:
             match = re.findall(query_re, q)
             if query != "" and match:
                 match_count += len(match)
                 matches.append((match, q))
 
+        # Get some stats
         text_hits, _ = zip(*matches)
         all_hits = [x for xs in text_hits for x in xs]
         if not case_sensitive:
@@ -44,13 +46,13 @@ if query:
         ).sort_values(by=["Count", "Hit"], ascending=False).reset_index(drop=True)
 
         st.markdown(f"Unique hits: {len(hit_df)}")
-        st.dataframe(hit_df)
+        st.dataframe(hit_df, column_config={"Hit": st.column_config.TextColumn()})
         st.dataframe(hit_df["Count"].describe().to_frame().transpose()[["mean", "std", "min", "max"]])
 
+        # Underscore the hits
         st.markdown(f"### Questions Results ({match_count})")
-        for m in matches:
-            original_str = m[1]
-            for single_hit in m[0]:
+        for hits, original_str in matches:
+            for single_hit in hits:
                 original_str = re.sub(
                     single_hit,
                     "<u>"+single_hit+"</u>",
