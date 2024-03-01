@@ -36,6 +36,12 @@ def compile_data(source, limit=False):
             for line in f:
                 data.append(line)
 
+    # SQuAD2.0 Contexts import
+    if source == "SQuAD2.0 Contexts":
+        with open("data/squad_train-v2.0_contexts.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
+
     return data, len(data)
 
 def find_matches(query_re, data):
@@ -63,7 +69,7 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts", "SQuAD2.0 Questions"])
+    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts", "SQuAD2.0 Questions", "SQuAD2.0 Contexts"])
     corpus_subset = st.toggle("limit source size")
     case_sensitive = st.toggle("case-sensitive search")
     case_flag = re.IGNORECASE if not case_sensitive else 0
