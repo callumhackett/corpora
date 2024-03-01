@@ -46,9 +46,10 @@ def find_matches(query_re, data):
                     match_counts[m.lower()] += 1
                 else:
                     match_counts[m] += 1
-            for m in set(match):
-                entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
-            match_entries.append(entry.strip())
+            if len(match_entries) < MAX_RETURNS:
+                for m in set(match):
+                    entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
+                match_entries.append(entry.strip())
     return match_counts, match_entries
 
 # User Interface
@@ -80,11 +81,11 @@ if query != "":
 
     # return
     with results:
-        if entry_count > MAX_RETURNS:
+        if entry_count == MAX_RETURNS:
             st.markdown(f"Because of a large number of matches, the returned results have been capped at {MAX_RETURNS:,}")
         results_table_container = st.container(height=500, border=False)
     with results_table_container.container():
-        results_table = pd.DataFrame({"": match_entries[:MAX_RETURNS]})
+        results_table = pd.DataFrame({"": match_entries})
         st.markdown(results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True)
 
     # statistics
