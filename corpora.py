@@ -4,43 +4,38 @@ import re
 import pandas as pd
 import streamlit as st
 
-LIMIT_FACTOR = 50 # factor by which to reduce the corpus size to improve search speed
-MAX_RETURNS = 1000 # maximum number of match contexts to show in the results table
+MAX_RETURNS = 1000 # maximum number of match entries to show in the results table
+SOURCE_LIMIT = 20000 # maximum entries in a limited data source
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
 @st.cache_data(max_entries=1)
-def compile_data(source, limit=True):
-    """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
+def compile_data(source, limit=False):
+    """Compile data into a list from source chosen by user in Search Parameters."""
     data = []
+
+    # HotpotQA Questions import
     if source == "HotpotQA Questions":
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
-            count = 0
-            if limit or not limit:
-                for line in f:
-                    if count % LIMIT_FACTOR == 0:
-                        data.append(line)
-                    count += 1
-            else:
-                for line in f:
-                    data.append(line)
+            for line in f:
+                if limit and len(data) == SOURCE_LIMIT:
+                    break
+                data.append(line)
+    
+    # HotpotQA Contexts import
     elif source == "HotpotQA Contexts":
         for filename in os.listdir("data"):
             if "hotpot" in filename and "contexts" in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
-                    count = 0
-                    if limit or not limit:
-                        for line in f:
-                            if count % LIMIT_FACTOR == 0:
-                                data.append(line)
-                            count += 1
-                    else:
-                        for line in f:
-                            data.append(line)
+                    for line in f:
+                        if limit and len(data) == SOURCE_LIMIT:
+                            break
+                        data.append(line)
+
     return data, len(data)
 
 def find_matches(query_re, data):
-    """Find and count all individual matches for a RegEx in each data entry."""
+    """Find, count and return all token matches for a RegEx in each item of a list of strings."""
     match_counts = Counter()
     match_entries = []
     for entry in data:
@@ -56,9 +51,9 @@ def find_matches(query_re, data):
             match_entries.append(entry.strip())
     return match_counts, match_entries
 
+# User Interface
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large")
 
-# Main User Interface
 with parameters:
     st.markdown("#### Search Parameters")
     source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts"])
@@ -71,30 +66,31 @@ with parameters:
 with results:
     st.markdown(f"#### Results")
     st.write("*Select a data source, type a search term, then press Enter*")
-    results_container = st.container(height=500, border=False)
 
 with statistics:
     st.markdown("#### Statistics")
 
-# Search Execution
+# Execution
 if query != "":
     # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     data, dataset_size = compile_data(source, limit=corpus_subset)
     match_counts, match_entries = find_matches(query_re, data)
+    entry_count = len(match_entries)
 
     # return
-    with results_container.container():
+    with results:
+        if entry_count > MAX_RETURNS:
+            st.markdown(f"Because of a large number of matches, the returned results have been capped at {MAX_RETURNS:,}")
+        results_table_container = st.container(height=500, border=False)
+    with results_table_container.container():
         results_table = pd.DataFrame({"": match_entries[:MAX_RETURNS]})
         st.markdown(results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True)
 
     # statistics
     with statistics:
-        entry_count = len(match_entries)
         if dataset_size != 0:
             st.markdown(f"{round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.")
-        if entry_count > MAX_RETURNS:
-            st.markdown(f"Because of the large number of matches, the returned texts have been capped at {MAX_RETURNS:,}.")
         st.markdown(f"{len(match_counts):,} unique string(s) had hits:")
         stats_table = pd.DataFrame(
             {"string": match_counts.keys(), "count": match_counts.values()}
