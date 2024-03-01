@@ -37,10 +37,12 @@ def compile_data(source, limit=False):
 def find_matches(query_re, data):
     """Find, count and return all token matches for a RegEx in each item of a list of strings."""
     match_counts = Counter()
+    entry_count = 0
     match_entries = []
     for entry in data:
         match = re.findall(query_re, entry)
         if match:
+            entry_count += 1
             for m in match:
                 if case_flag == re.IGNORECASE:
                     match_counts[m.lower()] += 1
@@ -50,7 +52,7 @@ def find_matches(query_re, data):
                 for m in set(match):
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
                 match_entries.append(entry.strip())
-    return match_counts, match_entries
+    return match_counts, entry_count, match_entries
 
 # User Interface
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large")
@@ -76,8 +78,7 @@ if query != "":
     # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
     data, dataset_size = compile_data(source, limit=corpus_subset)
-    match_counts, match_entries = find_matches(query_re, data)
-    entry_count = len(match_entries)
+    match_counts, entry_count, match_entries = find_matches(query_re, data)
 
     # return
     with results:
