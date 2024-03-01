@@ -125,6 +125,7 @@ if query != "":
         results_table_container = st.container(height=500, border=False)
     with results_table_container.container():
         results_table = pd.DataFrame({"": match_entries})
+        results_table.index += 1
         st.markdown(results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True)
 
     # statistics
