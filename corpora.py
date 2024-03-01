@@ -18,9 +18,6 @@ def compile_data(source, limit=False):
     if source == "HotpotQA Questions":
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
             for line in f:
-                #if limit and len(data) == SOURCE_LIMIT:
-                if len(data) == SOURCE_LIMIT:
-                    break
                 data.append(line)
     
     # HotpotQA Contexts import
@@ -29,10 +26,15 @@ def compile_data(source, limit=False):
             if "hotpot" in filename and "contexts" in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
                     for line in f:
-                        #if limit and len(data) == SOURCE_LIMIT:
-                        if len(data) == SOURCE_LIMIT:
+                        if limit and len(data) == SOURCE_LIMIT:
                             break
                         data.append(line)
+
+    # SQuAD2.0 Questions import
+    if source == "SQuAD2.0 Questions":
+        with open("data/squad_train-v2.0_questions.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
 
     return data, len(data)
 
@@ -61,7 +63,7 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts"])
+    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts", "SQuAD2.0 Questions"])
     corpus_subset = st.toggle("limit source size")
     case_sensitive = st.toggle("case-sensitive search")
     case_flag = re.IGNORECASE if not case_sensitive else 0
