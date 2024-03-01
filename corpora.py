@@ -8,7 +8,7 @@ LIMIT_DIVISOR = 50 # factor by which to reduce the corpus size to improve search
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
-@st.cache_data
+@st.cache_data(max_entries=1)
 def compile_data(sources, limit=True):
     """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
     data = []
