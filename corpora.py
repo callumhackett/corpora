@@ -4,7 +4,8 @@ import re
 import pandas as pd
 import streamlit as st
 
-LIMIT_DIVISOR = 50 # factor by which to reduce the corpus size to improve search speed
+LIMIT_FACTOR = 50 # factor by which to reduce the corpus size to improve search speed
+MAX_RETURNS = 1000 # maximum number of match contexts to show in the results table
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
@@ -17,7 +18,7 @@ def compile_data(sources, limit=True):
             count = 0
             if limit or not limit:
                 for line in f:
-                    if count % LIMIT_DIVISOR == 0:
+                    if count % LIMIT_FACTOR == 0:
                         data.append(line)
                     count += 1
             else:
@@ -30,7 +31,7 @@ def compile_data(sources, limit=True):
                     count = 0
                     if limit or not limit:
                         for line in f:
-                            if count % LIMIT_DIVISOR == 0:
+                            if count % LIMIT_FACTOR == 0:
                                 data.append(line)
                             count += 1
                     else:
@@ -90,7 +91,7 @@ if query != "":
 
     # return
     with results_container.container():
-        results_table = pd.DataFrame({"": match_entries[:10000]})
+        results_table = pd.DataFrame({"": match_entries[:MAX_RETURNS]})
         st.markdown(results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True)
 
     # statistics
@@ -98,8 +99,8 @@ if query != "":
         entry_count = len(match_entries)
         if dataset_size != 0:
             st.markdown(f"{round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.")
-        if entry_count > 10000:
-            st.markdown(f"Because of the large number of matches, the returned texts have been capped at 10,000.")
+        if entry_count > MAX_RETURNS:
+            st.markdown(f"Because of the large number of matches, the returned texts have been capped at {MAX_RETURNS:,}.")
         st.markdown(f"{len(match_counts):,} unique string(s) had hits:")
         stats_table = pd.DataFrame(
             {"string": match_counts.keys(), "count": match_counts.values()}
