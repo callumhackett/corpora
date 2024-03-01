@@ -4,18 +4,18 @@ import re
 import pandas as pd
 import streamlit as st
 
-LIMIT_DIVISOR = 20 # factor by which to reduce the corpus size to improve search speed
+LIMIT_DIVISOR = 50 # factor by which to reduce the corpus size to improve search speed
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
 @st.cache_data
-def compile_data(sources, limit=False):
+def compile_data(sources, limit=True):
     """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
     data = []
     if "HotpotQA Questions" in sources:
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
             count = 0
-            if limit:
+            if limit or not limit:
                 for line in f:
                     if count % LIMIT_DIVISOR == 0:
                         data.append(line)
@@ -28,7 +28,7 @@ def compile_data(sources, limit=False):
             if "hotpot" in filename and "contexts" in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
                     count = 0
-                    if limit:
+                    if limit or not limit:
                         for line in f:
                             if count % LIMIT_DIVISOR == 0:
                                 data.append(line)
@@ -36,6 +36,7 @@ def compile_data(sources, limit=False):
                     else:
                         for line in f:
                             data.append(line)
+    st.write(len(data))
     return data, len(data)
 
 @st.cache_data
