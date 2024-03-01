@@ -39,7 +39,6 @@ def compile_data(sources, limit=True):
     st.write(len(data))
     return data, len(data)
 
-@st.cache_data
 def find_matches(query_re, data):
     """Find and count all individual matches for a RegEx in each data entry."""
     match_counts = Counter()
