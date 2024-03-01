@@ -19,7 +19,7 @@ def compile_data(source, limit=False):
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
             for line in f:
                 #if limit and len(data) == SOURCE_LIMIT:
-                if len(data) == SOURCE_LIMIT
+                if len(data) == SOURCE_LIMIT:
                     break
                 data.append(line)
     
