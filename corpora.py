@@ -10,10 +10,10 @@ MAX_RETURNS = 1000 # maximum number of match contexts to show in the results tab
 st.set_page_config(page_title="Corpora", layout="wide")
 
 @st.cache_data(max_entries=1)
-def compile_data(sources, limit=True):
+def compile_data(source, limit=True):
     """Compile data into a single list from sources chosen by checkboxes in Search Parameters."""
     data = []
-    if "HotpotQA Questions" in sources:
+    if source == "HotpotQA Questions":
         with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
             count = 0
             if limit or not limit:
@@ -24,7 +24,7 @@ def compile_data(sources, limit=True):
             else:
                 for line in f:
                     data.append(line)
-    if "HotpotQA Contexts" in sources:
+    elif source == "HotpotQA Contexts":
         for filename in os.listdir("data"):
             if "hotpot" in filename and "contexts" in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
@@ -61,14 +61,9 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 # Main User Interface
 with parameters:
     st.markdown("#### Search Parameters")
-    st.markdown("**Sources**:")
-    sources = []
-    if st.checkbox("HotpotQA Questions"):
-        sources.append("HotpotQA Questions")
-    if st.checkbox("HotpotQA Contexts"):
-        sources.append("HotpotQA Contexts")
+    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts"])
+    corpus_subset = st.toggle("limit source size")
     case_sensitive = st.toggle("case-sensitive search")
-    corpus_subset = st.toggle("corpus subset (less data; faster search)")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
     st.caption("*only training data is used in this tool*")
@@ -85,7 +80,7 @@ with statistics:
 if query != "":
     # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
-    data, dataset_size = compile_data(sources, limit=corpus_subset)
+    data, dataset_size = compile_data(source, limit=corpus_subset)
     match_counts, match_entries = find_matches(query_re, data)
 
     # return
@@ -105,7 +100,7 @@ if query != "":
             {"string": match_counts.keys(), "count": match_counts.values()}
         ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
         st.dataframe(stats_table, column_config={"_index": None, "Hit": st.column_config.TextColumn()}, use_container_width=True)
-        if "HotpotQA Contexts" in sources:
+        if source == "HotpotQA Contexts":
             st.caption("""
                     For HotpotQA contexts, each of the multiple contexts per question is counted as one entry. 
                     The headline percentage is a slight underestimate because of some data format issues.
