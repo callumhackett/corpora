@@ -10,9 +10,21 @@ SOURCE_LIMIT = 20000 # maximum entries in a limited data source
 st.set_page_config(page_title="Corpora", layout="wide")
 
 @st.cache_data(max_entries=1)
-def compile_data(source, limit=False):
+def compile_data(source):
     """Compile data into a list from source chosen by user in Search Parameters."""
     data = []
+
+    # DROP Questions import
+    if source == "DROP Questions":
+        with open("data/drop_dataset_train_questions.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
+
+    # DROP Contexts import
+    if source == "DROP Contexts":
+        with open("data/drop_dataset_train_contexts.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
 
     # HotpotQA Questions import
     if source == "HotpotQA Questions":
@@ -21,14 +33,22 @@ def compile_data(source, limit=False):
                 data.append(line)
     
     # HotpotQA Contexts import
-    elif source == "HotpotQA Contexts":
+    if source == "HotpotQA Contexts (small)":
+        with open("data/hotpot_train_v1.1_contexts_small.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
+    if source == "HotpotQA Contexts (full)":
         for filename in os.listdir("data"):
-            if "hotpot" in filename and "contexts" in filename:
+            if "hotpot" in filename and "contexts" in filename and "small" not in filename:
                 with open(os.path.join("data", filename), encoding="utf-8") as f:
                     for line in f:
-                        if limit and len(data) == SOURCE_LIMIT:
-                            break
                         data.append(line)
+    
+    # QALD-9 Questions import
+    if source == "QALD-9 Questions":
+        with open("data/qald-9-train-multilingual_questions.txt", encoding="utf-8") as f:
+            for line in f:
+                data.append(line)
 
     # SQuAD2.0 Questions import
     if source == "SQuAD2.0 Questions":
@@ -69,12 +89,20 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source**:", ["HotpotQA Questions", "HotpotQA Contexts", "SQuAD2.0 Questions", "SQuAD2.0 Contexts"])
-    corpus_subset = st.toggle("limit source size")
+    source = st.radio("**Source (all training sets)**:", [
+        "DROP Questions",
+        "DROP Contexts",
+        "HotpotQA Questions",
+        "HotpotQA Contexts (small)",
+        "HotpotQA Contexts (full)*",
+        "QALD-9 Questions",
+        "SQuAD2.0 Questions",
+        "SQuAD2.0 Contexts"
+    ])
+    st.caption("*not recommended unless you need exact stats due to resource constraints")
     case_sensitive = st.toggle("case-sensitive search")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
-    st.caption("*only training data is used in this tool*")
 
 with results:
     st.markdown(f"#### Results")
@@ -87,7 +115,7 @@ with statistics:
 if query != "":
     # search
     query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
-    data, dataset_size = compile_data(source, limit=corpus_subset)
+    data, dataset_size = compile_data(source)
     match_counts, entry_count, match_entries = find_matches(query_re, data)
 
     # return
