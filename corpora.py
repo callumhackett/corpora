@@ -37,7 +37,6 @@ def compile_data(sources, limit=True):
                     else:
                         for line in f:
                             data.append(line)
-    st.write(len(data))
     return data, len(data)
 
 def find_matches(query_re, data):
