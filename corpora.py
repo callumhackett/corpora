@@ -100,9 +100,9 @@ with parameters:
         "SQuAD2.0 Contexts"
     ])
     st.caption("*not recommended unless you need exact stats due to resource constraints")
-    case_sensitive = st.toggle("case-sensitive search")
+    case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
-    query = st.text_input("**Search term (use * as a wildcard):**").strip().replace("*", "[\w|-]+")
+    query = st.text_input("**Search term (\* is a wildcard)**:").strip()
 
 with results:
     st.markdown(f"#### Results")
@@ -114,7 +114,7 @@ with statistics:
 # Execution
 if query != "":
     # search
-    query_re = re.compile(r"\b" + query + r"\b", flags=case_flag)
+    query_re = re.compile(r"\b" + query.replace("*", "[\w|-]+") + r"\b", flags=case_flag)
     data, dataset_size = compile_data(source)
     match_counts, entry_count, match_entries = find_matches(query_re, data)
 
