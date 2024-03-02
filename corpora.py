@@ -17,32 +17,36 @@ def compile_data(source):
     """
     data = []
     source = ("_").join(source.lower().split())
+
     with open(os.path.join("data", f"{source}.txt"), encoding="utf-8") as f:
         for line in f:
             data.append(line)
+
     return data
 
 def find_matches(query, data):
     """Find, count and return all token matches for a RegEx in each item of a list of strings."""
-    match_counts = Counter()
-    entry_count = 0
-    match_entries = []
+    token_counts = Counter()
+    entry_counts = 0
+    entry_texts = []
+
     for entry in data:
         match = re.findall(query, entry)
         # count the matches
         if match:
-            entry_count += 1
+            entry_counts += 1
             for m in match:
                 if case_flag == re.IGNORECASE:
-                    match_counts[m.lower()] += 1
+                    token_counts[m.lower()] += 1
                 else:
-                    match_counts[m] += 1
+                    token_counts[m] += 1
             # add matches to list with HTML styling
-            if len(match_entries) < MAX_RETURNS:
+            if len(entry_texts) < MAX_RETURNS:
                 for m in set(match):
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
-                match_entries.append(entry.strip())
-    return match_counts, entry_count, match_entries
+                entry_texts.append(entry.strip())
+
+    return token_counts, entry_counts, entry_texts
 
 # User Interface
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large")
@@ -61,10 +65,10 @@ with parameters:
     ])
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
-    query = st.text_input("**Search term (\* is a wildcard)**:").strip()
+    query = st.text_input("**Search term (use * as a wildcard)**:").strip()
     st.caption(
         """
-        The HotpotQA Contexts dataset is a representative sub-sample of the source, as it is much larger and slower to 
+        The HotpotQA Contexts dataset is a representative subset of the source, as it is much larger and slower to 
         search than the others.
         """
     )
@@ -84,16 +88,16 @@ if query != "":
     query = re.compile(r"\b" + query.replace("*", "[\w|-]+") + r"\b", flags=case_flag) # convert text query to regex
     data = compile_data(source) # compile data from user-chosen source
     dataset_size = len(data) # measure data size for stats
-    match_counts, entry_count, match_entries = find_matches(query, data) # extract search results
-    token_count = sum(match_counts.values()) # count total number of string matches
+    token_counts, entry_counts, entry_texts = find_matches(query, data) # extract search results
+    token_total = sum(token_counts.values())
 
     # display results
     with results:
-        if len(match_entries) == MAX_RETURNS:
-            st.markdown(f"Because of a large number of matches, the displayed results are capped at {MAX_RETURNS:,}")
+        if len(entry_texts) == MAX_RETURNS:
+            st.markdown(f"Because of a large number of matches, the displayed results have been capped at {MAX_RETURNS:,}")
         results_table_container = st.container(height=500, border=False) # place results inside fixed-height container
     with results_table_container.container():
-        results_table = pd.DataFrame({"": match_entries}) # convert search results to table
+        results_table = pd.DataFrame({"": entry_texts}) # convert search results to table
         results_table.index += 1 # set row index to start from 1 instead of 0
         st.markdown( # convert pd table to HTML to allow text highlighting
             results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True
@@ -101,18 +105,19 @@ if query != "":
 
     # display stats
     with statistics:
-        if dataset_size != 0:
+        if entry_texts:
+            entry_proportion = round(100*(entry_counts/dataset_size), 2) or "<0.01"
             st.markdown(f"""
-                {round(100*(entry_count/dataset_size), 3)}% of entries in your source had ≥1 match with a total of 
-                {token_count:,} hits.
+                {entry_proportion}% of entries in your source had ≥1 match.\n
+                There was a total of {token_total:,} match token(s).
                 """
             )
         if source == "HotpotQA Contexts":
             st.markdown("Each of the multiple contexts per HotpotQA question counts as one entry.")
         stats_table = pd.DataFrame( # convert string match data to table
-            {"string": match_counts.keys(),
-             "count": match_counts.values(),
-             "% in set": [round(100*(value/token_count), 2) or "<0.01" for value in match_counts.values()]}
+            {"string": token_counts.keys(),
+             "count": token_counts.values(),
+             "% in set": [round(100*(value/token_total), 2) or "<0.01" for value in token_counts.values()]}
         ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
         stats_table.index += 1 # set row index to start from 1 instead of 0
         st.dataframe(
