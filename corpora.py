@@ -85,6 +85,7 @@ if query != "":
     data = compile_data(source) # compile data from user-chosen source
     dataset_size = len(data) # measure data size for stats
     match_counts, entry_count, match_entries = find_matches(query, data) # extract search results
+    token_count = sum(match_counts.values()) # count total number of string matches
 
     # display results
     with results:
@@ -101,13 +102,19 @@ if query != "":
     # display stats
     with statistics:
         if dataset_size != 0:
-            st.markdown(f"{round(100*(entry_count/dataset_size), 3)}% of entries in your source(s) had ≥1 match.")
+            st.markdown(f"""
+                {round(100*(entry_count/dataset_size), 3)}% of entries in your source had ≥1 match with a total of 
+                {token_count:,} hits.
+                """
+            )
         if source == "HotpotQA Contexts":
             st.markdown("Each of the multiple contexts per HotpotQA question counts as one entry.")
-        st.markdown(f"{len(match_counts):,} unique string(s) had hits:")
         stats_table = pd.DataFrame( # convert string match data to table
-            {"string": match_counts.keys(), "count": match_counts.values()}
+            {"string": match_counts.keys(),
+             "count": match_counts.values(),
+             "% in set": [round(100*(value/token_count), 2) or "<0.01" for value in match_counts.values()]}
         ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
+        stats_table.index += 1 # set row index to start from 1 instead of 0
         st.dataframe(
-            stats_table, column_config={"_index": None, "Hit": st.column_config.TextColumn()}, use_container_width=True
+            stats_table, column_config={"Hit": st.column_config.TextColumn()}, use_container_width=True
         )
