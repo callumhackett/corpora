@@ -68,8 +68,7 @@ with parameters:
     query = st.text_input("**Search term (use * as a wildcard)**:").strip()
     st.caption(
         """
-        The HotpotQA Contexts dataset is a representative subset of the source, as it is much larger and slower to 
-        search than the others.
+        HotpotQA Contexts is a representative subset of the source, as it's larger and slower to search than the others.
         """
     )
 
