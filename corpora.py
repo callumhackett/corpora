@@ -16,55 +16,10 @@ def compile_data(source):
     Source is chosen by user in Search Parameters.
     """
     data = []
-
-    # DROP Questions import
-    if source == "DROP Questions":
-        with open("data/drop_dataset_train_questions.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-
-    # DROP Contexts import
-    elif source == "DROP Contexts":
-        with open("data/drop_dataset_train_contexts.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-
-    # HotpotQA Questions import
-    elif source == "HotpotQA Questions":
-        with open("data/hotpot_train_v1.1_questions.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-    
-    # HotpotQA Contexts import
-    elif source == "HotpotQA Contexts (small)":
-        with open("data/hotpot_train_v1.1_contexts_small.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-    elif source == "HotpotQA Contexts (full)*":
-        for filename in os.listdir("data"):
-            if "hotpot" in filename and "contexts" in filename and "small" not in filename:
-                with open(os.path.join("data", filename), encoding="utf-8") as f:
-                    for line in f:
-                        data.append(line)
-    
-    # QALD-9 Questions import
-    elif source == "QALD-9 Questions":
-        with open("data/qald-9-train-multilingual_questions.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-
-    # SQuAD2.0 Questions import
-    elif source == "SQuAD2.0 Questions":
-        with open("data/squad_train-v2.0_questions.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-
-    # SQuAD2.0 Contexts import
-    elif source == "SQuAD2.0 Contexts":
-        with open("data/squad_train-v2.0_contexts.txt", encoding="utf-8") as f:
-            for line in f:
-                data.append(line)
-
+    source = ("_").join(source.lower().split())
+    with open(os.path.join("data", f"{source}.txt"), encoding="utf-8") as f:
+        for line in f:
+            data.append(line)
     return data
 
 def find_matches(query, data):
@@ -87,7 +42,6 @@ def find_matches(query, data):
                 for m in set(match):
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
                 match_entries.append(entry.strip())
-
     return match_counts, entry_count, match_entries
 
 # User Interface
@@ -100,16 +54,20 @@ with parameters:
         "DROP Questions",
         "DROP Contexts",
         "HotpotQA Questions",
-        "HotpotQA Contexts (small)",
-        "HotpotQA Contexts (full)*",
+        "HotpotQA Contexts",
         "QALD-9 Questions",
         "SQuAD2.0 Questions",
         "SQuAD2.0 Contexts"
     ])
-    st.caption("*not recommended unless you need exact stats due to resource constraints")
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term (\* is a wildcard)**:").strip()
+    st.caption(
+        """
+        The HotpotQA Contexts dataset is a representative sub-sample of the source, as it is much larger and slower to 
+        search than the others.
+        """
+    )
 
 # Results column
 with results:
@@ -143,7 +101,9 @@ if query != "":
     # display stats
     with statistics:
         if dataset_size != 0:
-            st.markdown(f"{round(100*(entry_count/dataset_size), 2)}% of entries in your source(s) had ≥1 match.")
+            st.markdown(f"{round(100*(entry_count/dataset_size), 3)}% of entries in your source(s) had ≥1 match.")
+        if source == "HotpotQA Contexts":
+            st.markdown("Each of the multiple contexts per HotpotQA question counts as one entry.")
         st.markdown(f"{len(match_counts):,} unique string(s) had hits:")
         stats_table = pd.DataFrame( # convert string match data to table
             {"string": match_counts.keys(), "count": match_counts.values()}
@@ -151,5 +111,3 @@ if query != "":
         st.dataframe(
             stats_table, column_config={"_index": None, "Hit": st.column_config.TextColumn()}, use_container_width=True
         )
-        if source in ["HotpotQA Contexts (small)", "HotpotQA Contexts (full)*"]:
-            st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
