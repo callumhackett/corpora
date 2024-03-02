@@ -56,21 +56,25 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 # Search Parameters column
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source (all training sets)**:", [
+    source = st.radio("**Source**:", [
         "DROP Questions",
         "DROP Contexts",
         "HotpotQA Questions",
-        "HotpotQA Contexts",
+        "HotpotQA Contexts*",
         "QALD-9 Questions",
+        "Spoken English†",
         "SQuAD2.0 Questions",
         "SQuAD2.0 Contexts"
     ])
+    source = source.replace("*", "").replace("†", "")
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term (use * as a wildcard)**:").strip()
     st.caption(
         """
-        HotpotQA Contexts is a representative subset of the source, as it's larger and slower to search than the others.
+        *This is a representative subset, as the full set is too large for this tool.\n
+        †To compare with writing. Sampled from the British National Corpus.\n
+        *All benchmark data is sourced exclusively from training datasets.*
         """
     )
 
@@ -114,7 +118,7 @@ if query != "":
             st.markdown(
                 f"""
                 - Entries with ≥1 match: {entry_proportion}%
-                - Source text covered: {token_proportion}%
+                - Proportion of source: {token_proportion}%
                 - Unique matches: {len(token_counts.keys()):,}
                 - Total matches: {token_total:,}
                 """
@@ -130,3 +134,9 @@ if query != "":
             )
             if source == "HotpotQA Contexts":
                 st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
+            if source == "Spoken English":
+                st.caption(
+                    """
+                    An ‘entry’ in the Spoken English source is roughly a turn in a conversation but some of the 
+                    source situations are official meetings and lectures.
+                    """)
