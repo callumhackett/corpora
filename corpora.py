@@ -112,7 +112,7 @@ if query != "":
                 """
             )
         if source == "HotpotQA Contexts":
-            st.markdown("Each of the multiple contexts per HotpotQA question counts as one entry.")
+            st.markdown("Each of the multiple contexts per HotpotQA question is counted as one entry.")
         stats_table = pd.DataFrame( # convert string match data to table
             {"string": token_counts.keys(),
              "count": token_counts.values(),
