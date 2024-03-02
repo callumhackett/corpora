@@ -117,7 +117,7 @@ if query != "":
             st.markdown(
                 f"""
                 - Entries with ≥1 match: {entry_proportion}%
-                - Proportion of source: {token_proportion}%
+                - Proportion of all source text: {token_proportion}%
                 - Unique matches: {len(token_counts.keys()):,}
                 - Total matches: {token_total:,}
                 """
