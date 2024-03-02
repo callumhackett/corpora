@@ -5,14 +5,13 @@ import pandas as pd
 import streamlit as st
 
 MAX_RETURNS = 1000 # maximum number of match entries to show in the results table
-SOURCE_LIMIT = 20000 # maximum entries in a limited data source
 
 st.set_page_config(page_title="Corpora", layout="wide")
 
-@st.cache_data(max_entries=1) # keep one and only one data source in memory
+@st.cache_data(max_entries=1) # keep one and only one compiled data source in memory
 def compile_data(source):
     """
-    Compile text data from source into a list of strings.
+    Compile data from source into a list of strings.
     Source is chosen by user in Search Parameters.
     """
     data = []
