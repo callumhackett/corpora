@@ -106,13 +106,10 @@ if query != "":
     with statistics:
         if entry_texts:
             entry_proportion = round(100*(entry_counts/dataset_size), 2) or "<0.01"
-            st.markdown(f"""
-                {entry_proportion}% of entries in your source had ≥1 match.\n
-                There was a total of {token_total:,} match token(s).
-                """
-            )
-        if source == "HotpotQA Contexts":
-            st.markdown("Each of the multiple contexts per HotpotQA question is counted as one entry.")
+            st.markdown(f"{entry_proportion}% of entries in your source had ≥1 match.")
+            if source == "HotpotQA Contexts":
+                st.markdown("Each of the multiple contexts per HotpotQA question is counted as one entry.")
+            st.markdown(f"There was a total of {token_total:,} match token(s):")
         stats_table = pd.DataFrame( # convert string match data to table
             {"string": token_counts.keys(),
              "count": token_counts.values(),
