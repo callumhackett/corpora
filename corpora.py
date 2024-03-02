@@ -114,9 +114,9 @@ if query != "":
             st.markdown(
                 f"""
                 - Entries with ≥1 match: {entry_proportion}%
+                - Source text covered: {token_proportion}%
                 - Unique matches: {len(token_counts.keys()):,}
                 - Total matches: {token_total:,}
-                - Source text covered: {token_proportion}%
                 """
             )
             stats_table = pd.DataFrame( # convert string match data to table
