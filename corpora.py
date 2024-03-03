@@ -40,12 +40,14 @@ def find_matches(query, data):
     It is assumed that the RegEx does not contain groups.
     """
     token_counts = Counter()
+    entry_count = 0
     entry_texts = []
 
     for entry in data:
         match = re.findall(query, entry)
         # count the matches
         if match:
+            entry_count += 1
             for m in match:
                 if case_flag == re.IGNORECASE:
                     token_counts[m.lower()] += 1
@@ -56,8 +58,6 @@ def find_matches(query, data):
                 for m in set(match):
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
                 entry_texts.append(entry.strip())
-    
-    entry_count = len(entry_texts)
 
     return token_counts, entry_count, entry_texts
 
@@ -172,7 +172,7 @@ if query != "":
         with search_stats:
             if entry_texts:
                 entry_proportion = round(100*(entry_count/source_entry_count), 2) or "<0.01"
-                token_proportion = round(100*(token_total/source_word_count), 2) or "<0.01"
+                token_proportion = min(100.0, round(100*(token_total/source_word_count), 2)) or "<0.01"
                 st.markdown(
                     f"""
                     - Entries with ≥1 match: {entry_proportion}%
