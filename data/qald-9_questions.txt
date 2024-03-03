@@ -213,9 +213,9 @@ Who are the developers of DBpedia?
 Give me all movies directed by Francis Ford Coppola.
 Are tree frogs a type of amphibian?
 What is the location of the Houses of Parliament?
-how much is the elevation of Düsseldorf Airport?
+How much is the elevation of Düsseldorf Airport?
 How much is the population of mexico city?
-when was the founding date of french fifth republic?
+When was the founding date of french fifth republic?
 Who was the first King of England?
 Who is the editor of Forbes?
 Which awards did Douglas Hofstadter win?
@@ -226,7 +226,7 @@ How many people live in Poland?
 When was the last episode of the TV series Friends aired?
 Is the wife of president Obama called Michelle?
 Who is 8th president of US?
-how much is the total population of european union?
+How much is the total population of european union?
 Give me all launch pads operated by NASA.
 Who developed the video game World of Warcraft?
 What is the birth name of Adele?
@@ -270,17 +270,17 @@ In what city is the Heineken brewery?
 Is Barack Obama a democrat?
 List the children of Margaret Thatcher.
 From which region is the Melon de Bourgogne?
-how big is the total area of North Rhine- Westphalia?
+How big is the total area of North Rhine- Westphalia?
 Which city has the most inhabitants?
 What is Donald Trump's main business?
 When will start the final match of the football world cup 2018?
 Which films did Stanley Kubrick direct?
-how much is the population Iraq?
+How much is the population Iraq?
 How many inhabitants does the largest city in Canada have?
 Who is the mayor of the capital of French Polynesia?
 Give me all actors starring in movies directed by William Shatner.
 How tall is Claudia Schiffer?
-how much is the population densty rank of germany?
+How much is the population densty rank of germany?
 What is the highest mountain in Italy?
 List all games by GMT.
 What is the official language of Suriname?
