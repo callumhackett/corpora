@@ -17,43 +17,49 @@ def compile_data(source):
     data = []
     vocab = Counter()
     source = ("_").join(source.lower().split())
+    punctuation = re.compile("[,;!/:\(\)\.\?\"\[\]]")
 
     with open(os.path.join("data", f"{source}.txt"), encoding="utf-8") as f:
         for line in f:
             data.append(line)
+            line = line.replace("-", " ") # separate hyphenations for raw vocab counts
+            line = re.sub(punctuation, "", line) # remove punctuation for raw vocab counts
             for word in line.split():
-                if word.isalpha():
+                if word.isalpha(): # only count words as vocab items
                     vocab[word.lower()] += 1
 
-    entry_count = len(data)
-    vocab_size = len(vocab)
-    word_count = sum(vocab.values())
+    entry_count = len(data) # calculate the number of entries in the source
+    vocab_size = len(vocab) # calculate the number of unique vocab items in the source
+    word_count = sum(vocab.values()) # calculate the number of tokens in the source
 
     return data, entry_count, vocab, vocab_size, word_count
 
 def find_matches(query, data):
-    """Find, count and return all token matches for a RegEx in each item of a list of strings."""
+    """
+    Find, count and return all token matches for a RegEx in each item of a list of strings.
+    It is assumed that the RegEx does not contain groups.
+    """
     token_counts = Counter()
-    entry_counts = 0
     entry_texts = []
 
     for entry in data:
         match = re.findall(query, entry)
         # count the matches
         if match:
-            entry_counts += 1
             for m in match:
                 if case_flag == re.IGNORECASE:
                     token_counts[m.lower()] += 1
                 else:
                     token_counts[m] += 1
-            # add matches to list with HTML styling
+            # add matches to list for displaying with HTML styling
             if len(entry_texts) < MAX_RETURNS:
                 for m in set(match):
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
                 entry_texts.append(entry.strip())
+    
+    entry_count = len(entry_texts)
 
-    return token_counts, entry_counts, entry_texts
+    return token_counts, entry_count, entry_texts
 
 # User Interface
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large")
@@ -71,7 +77,6 @@ with parameters:
         "SQuAD2.0 Questions",
         "SQuAD2.0 Contexts"
     ])
-    source_data, source_entry_count, source_vocab, source_vocab_size, source_word_count = compile_data(source) # compile data from user-chosen source
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term**:").strip()
@@ -85,6 +90,8 @@ with parameters:
         *All benchmark data is sourced exclusively from training datasets*
         """
     )
+
+    source_data, source_entry_count, source_vocab, source_vocab_size, source_word_count = compile_data(source)
 
 # Results column
 with results:
@@ -141,7 +148,7 @@ if query != "":
     else: # search
         query = query.replace("*", "[\w|-]+").replace(".", "\.")
         query_re = re.compile(r"\b" + query + r"\b", flags=case_flag) # convert text query to regex
-        token_counts, entry_counts, entry_texts = find_matches(query_re, source_data) # extract search results
+        token_counts, entry_count, entry_texts = find_matches(query_re, source_data) # extract search results
         token_total = sum(token_counts.values())
 
         # display results
@@ -164,7 +171,7 @@ if query != "":
         # display stats
         with search_stats:
             if entry_texts:
-                entry_proportion = round(100*(entry_counts/source_entry_count), 2) or "<0.01"
+                entry_proportion = round(100*(entry_count/source_entry_count), 2) or "<0.01"
                 token_proportion = round(100*(token_total/source_word_count), 2) or "<0.01"
                 st.markdown(
                     f"""
