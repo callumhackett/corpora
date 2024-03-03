@@ -90,6 +90,16 @@ def import_benchmark_data(filepath, corpus, supporting_contexts_only=True):
 
     return entries
 
+def write_benchmark_data(filepath, corpus):
+    """Write benchmark data to file with contexts followed by their associated questions."""
+    with open(filepath, mode="w", encoding="utf-8") as f:
+        for entry in corpus:
+            for context in entry["contexts"]:
+                f.write(context+"\n")
+            for question in entry["questions"]:
+                f.write(question+"\n")
+            f.write("\n")
+
 def xml_to_string(filepath):
     """Extract the text from an XML file."""
     content = ET.parse(filepath)
@@ -97,6 +107,3 @@ def xml_to_string(filepath):
     text = str(ET.tostring(root, encoding="unicode", method="text"))
 
     return text
-
-benchmark_data = import_benchmark_data("data/raw_corpora/squad_train-v.2.0.json", "SQuAD2.0")
-sampled_data = random.sample(benchmark_data, 100)
