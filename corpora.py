@@ -93,8 +93,8 @@ if query != "":
             st.markdown(
                 """
                 ⚠️ Having certain non-alphabetic characters in your search term can cause errors because of the way the
-                search function works under the hood, so this search was not run. If you need results for your query,
-                please let me know.
+                search function works under the hood, so this search was not run. If you need results for your query, 
+                let me know and I'll add extra functionality for it.
                 """
             )
     else: # search
