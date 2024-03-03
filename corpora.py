@@ -17,7 +17,7 @@ def compile_data(source):
     data = []
     vocab = Counter()
     source = ("_").join(source.lower().split())
-    punctuation = re.compile("[,;!/:\(\)\.\?\"\[\]]")
+    punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]')
 
     with open(os.path.join("data", f"{source}.txt"), encoding="utf-8") as f:
         for line in f:
@@ -136,7 +136,7 @@ with source_stats:
 
 # Execution
 if query != "":
-    if re.search("[\\\(\)\[\]\?\$\+]", query):
+    if re.search(r'[\\\(\)\[\]\?\$\+]', query):
         with results:
             st.markdown(
                 """
@@ -184,7 +184,7 @@ if query != "":
                 stats_table = pd.DataFrame( # convert string match data to table
                     {"string": token_counts.keys(),
                     "count": token_counts.values(),
-                    "% in set": [round(100*(value/token_total), 2) or "<0.01" for value in token_counts.values()]}
+                    "% in set": [str(round(100*(value/token_total), 2) or "<0.01") for value in token_counts.values()]}
                 ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True)
