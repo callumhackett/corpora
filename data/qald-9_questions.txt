@@ -213,8 +213,8 @@ Who are the developers of DBpedia?
 Give me all movies directed by Francis Ford Coppola.
 Are tree frogs a type of amphibian?
 What is the location of the Houses of Parliament?
-how much is the elevation of Düsseldorf Airport ?
-How much is the population of mexico city ?
+how much is the elevation of Düsseldorf Airport?
+How much is the population of mexico city?
 when was the founding date of french fifth republic?
 Who was the first King of England?
 Who is the editor of Forbes?
