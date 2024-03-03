@@ -148,6 +148,6 @@ if query != "":
                 if source == "Spoken English":
                     st.caption(
                         """
-                        An ‘entry’ in the Spoken English source is roughly a turn in a conversation but some of the 
-                        source situations are town meetings and the like.
+                        An ‘entry’ in the Spoken English source is roughly a turn in a conversation but this is 
+                        situation-specific.
                         """)
