@@ -137,5 +137,5 @@ if query != "":
                 st.caption(
                     """
                     An ‘entry’ in the Spoken English source is roughly a turn in a conversation but some of the 
-                    source situations are official meetings and lectures.
+                    source situations are official meetings and the like.
                     """)
