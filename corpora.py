@@ -6,24 +6,30 @@ import streamlit as st
 
 MAX_RETURNS = 1000 # maximum number of match entries to show in the results table
 
-st.set_page_config(page_title="Corpora", layout="wide")
+st.set_page_config(page_title="Corpora", layout="wide") # browser tab title and page layout
 
 @st.cache_data(max_entries=1) # keep one and only one compiled data source in memory
 def compile_data(source):
     """
-    Compile data from source into a list of strings.
-    Source is chosen by user in Search Parameters.
+    Compile data from a line-separated .txt source into a list of strings.
+    The source is chosen by the user in Search Parameters.
     """
     data = []
-    word_count = 0
+    vocab = Counter()
     source = ("_").join(source.lower().split())
 
     with open(os.path.join("data", f"{source}.txt"), encoding="utf-8") as f:
         for line in f:
             data.append(line)
-            word_count += len(line.split())
+            for word in line.split():
+                if word.isalpha():
+                    vocab[word.lower()] += 1
 
-    return data, len(data), word_count
+    entry_count = len(data)
+    vocab_size = len(vocab)
+    word_count = sum(vocab.values())
+
+    return data, entry_count, vocab, vocab_size, word_count
 
 def find_matches(query, data):
     """Find, count and return all token matches for a RegEx in each item of a list of strings."""
@@ -59,21 +65,24 @@ with parameters:
         "DROP Questions",
         "DROP Contexts",
         "HotpotQA Questions",
-        "HotpotQA Contexts*",
+        "HotpotQA Contexts",
         "QALD-9 Questions",
-        "Spoken English†",
+        "Spoken English",
         "SQuAD2.0 Questions",
         "SQuAD2.0 Contexts"
     ])
-    source = source.replace("*", "").replace("†", "")
+    source_data, source_entry_count, source_vocab, source_vocab_size, source_word_count = compile_data(source) # compile data from user-chosen source
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
-    query = st.text_input("**Search term (use * as a wildcard)**:").strip()
+    query = st.text_input("**Search term**:").strip()
     st.caption(
         """
-        *This is a representative subset, as the full set is too large for this tool.\n
-        †A sample from the British National Corpus as a point of reference.\n
-        *All benchmark data is sourced exclusively from training datasets.*
+        Use * as a wildcard and ^ to match the start of an entry
+        """
+    )
+    st.caption(
+        """
+        *All benchmark data is sourced exclusively from training datasets*
         """
     )
 
@@ -85,6 +94,38 @@ with results:
 # Statistics column
 with statistics:
     st.markdown("#### Statistics")
+    search_stats, source_stats = st.tabs(["Search Stats", "Source Stats"])
+
+with source_stats:
+    st.markdown(
+        f"""
+        - Entries: {source_entry_count:,}
+        - Vocab size: {source_vocab_size:,}
+        - Word count: {source_word_count:,}
+        """)
+    st.markdown("Top 1,000 Vocab Items:")
+    vocab_table = pd.DataFrame( # convert string match data to table
+        {"word": source_vocab.keys(),
+        "count": source_vocab.values(),
+        "% in source": [round(100*(value/source_word_count), 2) or "<0.01" for value in source_vocab.values()]}
+    ).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
+    vocab_table.index += 1 # set row index to start from 1 instead of 0
+    st.dataframe(vocab_table[:1000], use_container_width=True)
+    if source == "HotpotQA Contexts":
+        st.caption(
+            """
+            The HotpotQA Contexts dataset is much larger than the others and this can cause slow search times and 
+            resource issues. The dataset loaded in this tool (and described above) is a representative subset. If you 
+            want more exact results, let me know.
+            """
+        )
+    if source == "Spoken English":
+        st.caption(
+            """
+            The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
+            a naturalistic point of comparison against written texts.
+            """
+        )
 
 # Execution
 if query != "":
@@ -100,7 +141,6 @@ if query != "":
     else: # search
         query = query.replace("*", "[\w|-]+").replace(".", "\.")
         query_re = re.compile(r"\b" + query + r"\b", flags=case_flag) # convert text query to regex
-        source_data, source_entry_count, source_word_count = compile_data(source) # compile data from user-chosen source
         token_counts, entry_counts, entry_texts = find_matches(query_re, source_data) # extract search results
         token_total = sum(token_counts.values())
 
@@ -122,7 +162,7 @@ if query != "":
                     )
 
         # display stats
-        with statistics:
+        with search_stats:
             if entry_texts:
                 entry_proportion = round(100*(entry_counts/source_entry_count), 2) or "<0.01"
                 token_proportion = round(100*(token_total/source_word_count), 2) or "<0.01"
@@ -140,9 +180,7 @@ if query != "":
                     "% in set": [round(100*(value/token_total), 2) or "<0.01" for value in token_counts.values()]}
                 ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
                 stats_table.index += 1 # set row index to start from 1 instead of 0
-                st.dataframe(
-                    stats_table, column_config={"Hit": st.column_config.TextColumn()}, use_container_width=True
-                )
+                st.dataframe(stats_table, use_container_width=True)
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
                 if source == "Spoken English":
