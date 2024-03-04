@@ -141,8 +141,17 @@ if query != "":
             st.markdown(
                 """
                 ⚠️ Having certain non-alphabetic characters in your search term can cause errors because of the way the
-                search function works under the hood, so this search was not run. If you need results for your query, 
-                let me know and I'll add extra functionality for it.
+                search function works under the hood, so this search was not run. If you need results for your query or 
+                you just want to search with regular expressions, let me know.
+                """
+            )
+    elif query == "*":
+        with results:
+            st.markdown(
+                """
+                ⚠️ You can use wildcards but you need to use them *with* something: other words or even just more 
+                wildcards. If you want to search for a single wildcard to get a vocab list, check the 'Source Stats' 
+                tab under 'Statistics'.
                 """
             )
     else: # search
