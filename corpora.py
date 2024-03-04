@@ -145,7 +145,7 @@ if query != "":
                 you just want to search with regular expressions, let me know.
                 """
             )
-    elif query == "*":
+    elif query in ["*", "^"]:
         with results:
             st.markdown(
                 """
