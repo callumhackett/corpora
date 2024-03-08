@@ -1,2 +1,3 @@
 **/.DS_Store
 data/raw_corpora
+corpus_processing.py
