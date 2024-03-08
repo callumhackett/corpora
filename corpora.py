@@ -16,7 +16,7 @@ def compile_corpus(source_name):
     """
     data = []
     vocab = Counter()
-    source_name = ("_").join(source_name.lower().split())
+    source_name = ("_").join(source_name.split())
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]')
 
     with open(os.path.join(DATA_FOLDER, f"{source_name}.txt"), encoding="utf-8") as f:
