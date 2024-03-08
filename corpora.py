@@ -72,15 +72,11 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 with parameters:
     st.markdown("#### Search Parameters")
     source = st.radio("**Source**:", corpus_filenames) # radio buttons for corpus choice
+    st.caption("*All benchmark data is sourced exclusively from training datasets*")
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term**:").strip()
-    st.caption(
-        """
-        Use * as a wildcard and ^ to match the start of an entry\n\n
-        *All benchmark data is sourced exclusively from training datasets*
-        """
-    )
+    st.caption("Use * as a wildcard and ^ to match the start of an entry")
     source_data, source_entry_count, source_vocab, source_vocab_size, source_word_count = compile_corpus(source)
 
 # Results column
