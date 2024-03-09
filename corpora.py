@@ -96,6 +96,14 @@ with source_stats:
         - Vocab size: {source_vocab_size:,}
         - Word count: {source_word_count:,}
         """)
+    if source == "HotpotQA Contexts":
+        st.caption(
+            """
+            The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times and resource 
+            issues. The data loaded in this tool is a representative subset. If you want more exact results, 
+            let me know.
+            """
+        )
     st.markdown("Top 1,000 Vocab Items:")
     vocab_table = pd.DataFrame( # convert string match data to table
         {"word": source_vocab.keys(),
@@ -104,14 +112,6 @@ with source_stats:
     ).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
-    if source == "HotpotQA Contexts":
-        st.caption(
-            """
-            The HotpotQA Contexts dataset is much larger than the others and this can cause slow search times and 
-            resource issues. The dataset loaded in this tool (and described above) is a representative subset. If you 
-            want more exact results, let me know.
-            """
-        )
     if source == "Spoken English":
         st.caption(
             """
@@ -188,6 +188,13 @@ if query != "":
                 st.dataframe(stats_table, use_container_width=True)
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
+                    st.caption(
+                        """
+                        The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times 
+                        and resource issues. The data loaded in this tool is a representative subset. If you want more 
+                        exact results, let me know.
+                        """
+                    )
                 if source == "Spoken English":
                     st.caption(
                         """
