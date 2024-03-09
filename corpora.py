@@ -6,6 +6,10 @@ import streamlit as st
 
 CACHE_SIZE = 1 # number of compiled corpora to keep in memory; more than 1 may cause issues over the web
 DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames will be used in user selection
+HOTPOTQA_NOTICE = """
+    The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times and resource issues. 
+    The data loaded in this tool is a representative subset. If you want more exact results, let me know.
+"""
 MAX_RETURNS = 1000 # maximum number of corpus examples to show in the main results table
 
 @st.cache_data(max_entries=CACHE_SIZE)
@@ -97,13 +101,7 @@ with source_stats:
         - Word count: {source_word_count:,}
         """)
     if source == "HotpotQA Contexts":
-        st.caption(
-            """
-            The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times and resource 
-            issues. The data loaded in this tool is a representative subset. If you want more exact results, 
-            let me know.
-            """
-        )
+        st.caption(HOTPOTQA_NOTICE)
     st.markdown("Top 1,000 Vocab Items:")
     vocab_table = pd.DataFrame( # convert string match data to table
         {"word": source_vocab.keys(),
@@ -188,16 +186,11 @@ if query != "":
                 st.dataframe(stats_table, use_container_width=True)
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
-                    st.caption(
-                        """
-                        The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times 
-                        and resource issues. The data loaded in this tool is a representative subset. If you want more 
-                        exact results, let me know.
-                        """
-                    )
+                    st.caption(HOTPOTQA_NOTICE)
                 if source == "Spoken English":
                     st.caption(
                         """
                         An ‘entry’ in the Spoken English source is roughly a turn in a conversation but this is 
                         situation-specific.
-                        """)
+                        """
+                    )
