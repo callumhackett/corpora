@@ -1,8 +1,6 @@
 from collections import defaultdict
 import json
-#import random
 import os
-import spacy
 import xml.etree.ElementTree as ET
 
 def filepaths(folder):
@@ -113,26 +111,3 @@ def xml_to_string(filepath):
     text = str(ET.tostring(root, encoding="unicode", method="text"))
 
     return text
-
-nlp = spacy.load("en_core_web_lg", exclude=["ner", "lemmatizer", "textcat"])
-
-#corpus = import_benchmark_data("data/raw_corpora/drop_dataset_train.json", corpus="DROP")
-#corpus = import_benchmark_data(
-#    "data/raw_corpora/hotpot_train_v1.1.json", corpus="HotpotQA", supporting_contexts_only=True
-#)
-corpus = import_benchmark_data("data/raw_corpora/squad_train-v2.0.json", corpus="SQuAD2.0")
-
-stats = defaultdict(int)
-case_count = 0
-question_count = 0
-for case in corpus:
-    case_count += 1
-    for question in case["questions"]:
-        question_count += 1
-        #doc = nlp(context)
-        #n_sentences = len(list(doc.sents))
-        #stats[n_sentences] += 1
-print(case_count)
-print(question_count)
-print(question_count/case_count)
-#print(sorted(stats.items(), key=lambda x:x[0]))
