@@ -1,19 +1,6 @@
 from collections import defaultdict
 import json
-import os
 import xml.etree.ElementTree as ET
-
-def filepaths(folder):
-    """
-    Return a list of alphabetically sorted filepaths for all files in a folder and its subfolders.
-    """
-    files = []
-    for path, _, filenames in os.walk(folder):
-        for name in filenames:
-            files.append(os.path.join(path, name))
-    files = sorted(files)
-
-    return files
 
 def load_json(filepath):
     """
@@ -24,17 +11,27 @@ def load_json(filepath):
 
     return data
 
-def import_benchmark_data(filepath, corpus, supporting_contexts_only=True):
+def import_benchmark_data(filepath, corpus_name, supporting_contexts_only=True):
     """
-    Import NLU benchmark data into a list of dicts, where each dict contains the keys "questions" and "contexts", each 
-    containing a list of questions or contexts pertaining to one test case in the benchmark.
+    Import NLU benchmark data from a JSON source into a list of dicts, where each dict encapsulates one test case.
+    Each dict has the keys "questions" and "contexts", each with a list containing as many questions and/or contexts as
+    come with the given test case.
+
+    Illustration:
+    [ # list of all benchmark test cases
+        { # test case 1
+            "questions":[QUESTION1, QUESTION2, ...], # question set for test case 1
+            "contexts":[CONTEXT1, CONTEXT2, ...] # context set for test case 1
+        },
+        {...},
+    ]
     """
     data = load_json(filepath)
     entries = []
 
     # DROP has the form:
     # [{"qa_pairs": [{"question": QUESTION}, ...], "passage": CONTEXT}, ...]
-    if corpus == "DROP":
+    if corpus_name == "drop":
         for test_case in data.values():
             entry = defaultdict(list)
             # add the questions (multiple)
@@ -49,7 +46,7 @@ def import_benchmark_data(filepath, corpus, supporting_contexts_only=True):
     # HotpotQA has the form:
     # [{"level": hard, "question": QUESTION, "context": [[SOURCE_NAME, [SENTENCE, SENTENCE, ...]], ...],
     #   "supporting_facts": [[SOURCE_NAME, FACT_LOCATION], ...]}, ...]
-    elif corpus == "HotpotQA":
+    elif corpus_name == "hotpot":
         for test_case in data:
             if test_case["level"] != "hard": # only hard cases are tested by the benchmark
                 pass
@@ -72,7 +69,7 @@ def import_benchmark_data(filepath, corpus, supporting_contexts_only=True):
 
     # SQuAD2.0 has the form:
     # {"data": [{"paragraphs": [{"qas": [{"question": QUESTION}, ...], "context": CONTEXT}, ...]}, ...]}
-    elif corpus == "SQuAD2.0":
+    elif corpus_name == "squad":
         data = data["data"]
         for topic in data:
             test_cases = topic["paragraphs"]
@@ -89,18 +86,6 @@ def import_benchmark_data(filepath, corpus, supporting_contexts_only=True):
                 entries.append(entry)
 
     return entries
-
-def write_benchmark_data(filepath, corpus):
-    """
-    Write benchmark data to file with contexts followed by their associated questions.
-    """
-    with open(filepath, mode="w", encoding="utf-8") as f:
-        for entry in corpus:
-            for context in entry["contexts"]:
-                f.write(context + "\n")
-            for question in entry["questions"]:
-                f.write(question + "\n")
-            f.write("\n")
 
 def xml_to_string(filepath):
     """
