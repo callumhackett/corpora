@@ -8,8 +8,8 @@ CACHE_SIZE = 1 # number of compiled corpora to keep in memory; more than 1 may c
 DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames will be used in user selection
 HOTPOTQA_NOTICE = (
     """
-    The HotpotQA Contexts dataset is much larger than the others, which can mean slow search times and resource issues. 
-    The data loaded in this tool is a representative subset. If you want more exact results, let me know.
+    The HotpotQA dataset has been filtered for contexts and questions labelled "hard", as the test set contains only 
+    cases of this kind.
     """
 )
 MAX_RETURNS = 1000 # maximum number of examples to show in the main results table
@@ -102,7 +102,7 @@ with corpus_stats:
         - Vocab size: {corpus_vocab_size:,}
         - Word count: {corpus_word_count:,}
         """)
-    if source == "HotpotQA Contexts":
+    if source.startswith("HotpotQA"):
         st.caption(HOTPOTQA_NOTICE)
     st.markdown("Top 1,000 Vocab Items:")
     vocab_table = pd.DataFrame( # convert string match data to table
@@ -142,7 +142,7 @@ if query != "":
                 """
             )
     else:
-        query = query.replace("*", "[\w|-]+").replace(".", "\.") # convert user-facing wildcard to RegEx pattern
+        query = query.replace("*", "[\w\",'-]+").replace(".", "\.") # convert user-facing wildcard to RegEx pattern
         query_re = re.compile(r"\b" + query + r"\b", flags=case_flag) # compile query as RegEx
         entry_count, token_counts, entry_texts = find_matches(query_re, corpus_data) # extract search results
         token_total = sum(token_counts.values())
