@@ -1,8 +1,7 @@
 from collections import defaultdict
 import json
-import xml.etree.ElementTree as ET
 
-def load_json(filepath):
+def import_json(filepath):
     """
     Load json data from filepath into a dict.
     """
@@ -26,7 +25,7 @@ def import_benchmark_data(filepath, corpus_name, supporting_contexts_only=True):
         {...},
     ]
     """
-    data = load_json(filepath)
+    data = import_json(filepath)
     entries = []
 
     # DROP has the form:
@@ -49,7 +48,7 @@ def import_benchmark_data(filepath, corpus_name, supporting_contexts_only=True):
     elif corpus_name == "hotpot":
         for test_case in data:
             if test_case["level"] != "hard": # only hard cases are tested by the benchmark
-                pass
+                continue
             entry = defaultdict(list)
             # add the question (single)
             question = test_case["question"].strip()
@@ -86,13 +85,3 @@ def import_benchmark_data(filepath, corpus_name, supporting_contexts_only=True):
                 entries.append(entry)
 
     return entries
-
-def xml_to_string(filepath):
-    """
-    Extract the text from an XML file.
-    """
-    content = ET.parse(filepath)
-    root = content.getroot()
-    text = str(ET.tostring(root, encoding="unicode", method="text"))
-
-    return text
