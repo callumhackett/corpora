@@ -1,87 +1,73 @@
-from collections import defaultdict
 import json
 
-def import_json(filepath):
+def import_benchmark_data(
+        filepath, benchmark_name,
+        inclusions=["titles", "contexts", "questions"], hotpot_levels=["hard"], hotpot_distractors=False
+    ):
     """
-    Load json data from filepath into a dict.
+    Import benchmark data from a JSON file into a list of dicts, where each dict encapsulates one test case.
+    
+    Each dict may have any of the keys "title", "contexts" and "questions", where "title" is a string describing the topic and "contexts" and "questions" are lists having as many items as there are contexts and questions per test case.
+
+    Args:
+        filepath: the location of the JSON file
+        benchmark_name: one of "drop", "hotpot", "squad", for individualised processing
+        inclusions: a list with any combination of "titles", "contexts", "questions" (default includes all)
+        hotpot_levels: a list with any combination of "easy", "medium", "hard" to filter by difficulty (default ["hard"])
+        hotpot_distractors: a Boolean determining whether to include the distracting contexts with hotpot (default False)
     """
+    # import the data and initialise the extraction
     with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
+        source = json.load(f)
+    data = []
+
+    if benchmark_name == "drop":
+        # DROP has the form:
+        # {ID:{"passage":CONTEXT, "qa_pairs":[{"question": QUESTION1}, {"question": QUESTION2}, ...]}, ...}
+        for test_case in source.values():
+            extraction = {}
+            if "contexts" in inclusions:
+                extraction["contexts"] = [test_case["passage"].strip()]
+            if "questions" in inclusions:
+                extraction["questions"] = [qa_pair["question"].strip() for qa_pair in test_case["qa_pairs"]]
+            data.append(extraction)
+
+    elif benchmark_name == "hotpot":
+        # HotpotQA has the form:
+        # [{"level": hard, "question": QUESTION, "context": [[SOURCE_NAME, [SENTENCE, SENTENCE, ...]], ...],
+        #   "supporting_facts": [[SOURCE_NAME, FACT_LOCATION_INDEX], ...]}, ...]
+        for test_case in source:
+            # filter by difficulty level
+            if test_case["level"] not in hotpot_levels:
+                continue
+            extraction = {}
+            if "contexts" in inclusions:
+                # add distractors
+                if hotpot_distractors:
+                    extraction["contexts"] = [" ".join(context[1]) for context in test_case["context"]]
+                # or exclude them
+                else:
+                    supporting_titles = [context_details[0] for context_details in test_case["supporting_facts"]]
+                    extraction["contexts"] = [
+                        " ".join(context[1]) for context in test_case["context"] if context[0] in supporting_titles
+                    ]
+            if "questions" in inclusions:
+                extraction["questions"] = [test_case["question"].strip()]
+            data.append(extraction)
+
+    elif benchmark_name == "squad":
+        # SQuAD2.0 has the form:
+        # {"data": [{"paragraphs": [{"qas": [{"question": QUESTION}, ...], "context": CONTEXT}, ...]}, ...]}
+        source = source["data"]
+        for grouping in source:
+            for test_case in grouping["paragraphs"]:
+                extraction = {}
+                if "titles" in inclusions:
+                    extraction["title"] = grouping["title"]
+                if "contexts" in inclusions:
+                    extraction["contexts"] = [test_case["context"].strip()]
+                if "questions" in inclusions:
+                    extraction["questions"] = [qa_pair["question"].strip() for qa_pair in test_case["qas"]]
+                data.append(extraction)
 
     return data
-
-def import_benchmark_data(filepath, corpus_name, supporting_contexts_only=True):
-    """
-    Import NLU benchmark data from a JSON source into a list of dicts, where each dict encapsulates one test case.
-    Each dict has the keys "questions" and "contexts", each with a list containing as many questions and/or contexts as
-    come with the given test case.
-
-    Illustration:
-    [ # list of all benchmark test cases
-        { # test case 1
-            "questions":[QUESTION1, QUESTION2, ...], # question set for test case 1
-            "contexts":[CONTEXT1, CONTEXT2, ...] # context set for test case 1
-        },
-        {...},
-    ]
-    """
-    data = import_json(filepath)
-    entries = []
-
-    # DROP has the form:
-    # [{"qa_pairs": [{"question": QUESTION}, ...], "passage": CONTEXT}, ...]
-    if corpus_name == "drop":
-        for test_case in data.values():
-            entry = defaultdict(list)
-            # add the questions (multiple)
-            for qa_pair in test_case["qa_pairs"]:
-                question = qa_pair["question"].strip()
-                entry["questions"].append(question)
-            # add the context (single)
-            context = test_case["passage"].strip()
-            entry["contexts"].append(context)
-            entries.append(entry)
-    
-    # HotpotQA has the form:
-    # [{"level": hard, "question": QUESTION, "context": [[SOURCE_NAME, [SENTENCE, SENTENCE, ...]], ...],
-    #   "supporting_facts": [[SOURCE_NAME, FACT_LOCATION], ...]}, ...]
-    elif corpus_name == "hotpot":
-        for test_case in data:
-            if test_case["level"] != "hard": # only hard cases are tested by the benchmark
-                continue
-            entry = defaultdict(list)
-            # add the question (single)
-            question = test_case["question"].strip()
-            entry["questions"].append(question)
-            # add the contexts (multiple)
-            named_contexts = test_case["context"]
-            supporting_context_names = [context_details[0] for context_details in test_case["supporting_facts"]]
-            for context in named_contexts:
-                context_name = context[0]
-                context_content = " ".join(context[1]).strip().replace("\n", " ")
-                if supporting_contexts_only:
-                    if context_name in supporting_context_names:
-                        entry["contexts"].append(context_content)
-                else:
-                    entry["contexts"].append(context_content)
-            entries.append(entry)
-
-    # SQuAD2.0 has the form:
-    # {"data": [{"paragraphs": [{"qas": [{"question": QUESTION}, ...], "context": CONTEXT}, ...]}, ...]}
-    elif corpus_name == "squad":
-        data = data["data"]
-        for topic in data:
-            test_cases = topic["paragraphs"]
-            for test_case in test_cases:
-                entry = defaultdict(list)
-                # add the questions (multiple)
-                qa_pairs = test_case["qas"]
-                for qa_pair in qa_pairs:
-                    question = qa_pair["question"].strip()
-                    entry["questions"].append(question)
-                # add the context (single)
-                context = test_case["context"].strip()
-                entry["contexts"].append(context)
-                entries.append(entry)
-
-    return entries
