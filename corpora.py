@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import streamlit as st
 
-CACHE_SIZE = 1 # number of compiled corpora to keep in memory; more than 1 may cause issues over the web
+CACHE_SIZE = 1 # number of compiled corpora to keep in memory
 DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames will be used in user selection
 HOTPOTQA_NOTICE = (
     """
