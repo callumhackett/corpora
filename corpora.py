@@ -74,7 +74,7 @@ def find_matches(query, data):
                 for m in set(match): # for each unique matching string
                     # add HTML styling before adding to the return list
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
-                entry_texts.append(entry) # add the styled entry to the match list
+                entry_texts.append(entry.strip()) # add the styled entry to the match list
 
     return entry_count, token_counts, entry_texts
 
