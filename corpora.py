@@ -1,11 +1,12 @@
-from collections import Counter
 import os
 import re
+from collections import Counter
+
 import pandas as pd
 import streamlit as st
 
 CACHE_SIZE = 1 # number of compiled corpora to keep in memory
-DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames will be used in user selection
+DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames are used in user selection
 HOTPOTQA_NOTICE = (
     """
     The HotpotQA dataset has been filtered for contexts and questions labelled "hard", as the test set contains only 
@@ -18,57 +19,69 @@ MAX_RETURNS = 1000 # maximum number of examples to show in the main results tabl
 def compile_corpus(corpus_name):
     """
     Compile corpus data from a .txt source of line-separated entries into a list of strings.
+
     The source is chosen by the user in Search Parameters.
+
+    Args:
+        corpus_name: a string naming the corpus; this is determined by the user's selection
     """
-    corpus_name = corpus_name.replace(" ", "_") # match source name with filename
-    data = [] # initialise the list of corpus entries
-    vocab = Counter() # initialise a full vocab count
+    corpus_name = corpus_name.replace(" ", "_") # convert user-facing name to filename format
+    data = [] # initialise the corpus
+    vocab_count = Counter() # initialise a vocab count
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab counts
 
     with open(os.path.join(DATA_FOLDER, f"{corpus_name}.txt"), encoding="utf-8") as f:
-        for line in f: # for each entry in the corpus
-            data.append(line) # add it to the list
-            line = re.sub(punctuation, "", line) # remove punctuation to facilitate vocab counts
-            for word in line.split(): # for each token in the entry
-                if word.isalpha(): # if it's alphabetical
-                    vocab[word.lower()] += 1 # add to its vocab count
+        for line in f:
+            # add the data to the corpus
+            data.append(line)
+            # keep a vocab count, correcting for punctuation
+            for word in re.sub(punctuation, "", line).split():
+                if word.isalpha():
+                    vocab_count[word.lower()] += 1
 
     entry_count = len(data) # the number of entries in the corpus
-    vocab_size = len(vocab) # the number of unique words in the corpus
-    word_count = sum(vocab.values()) # the number of word tokens in the corpus
+    vocab_size = len(vocab_count) # the number of words in the corpus
+    token_count = sum(vocab_count.values()) # the number of tokens in the corpus
 
-    return data, entry_count, vocab, vocab_size, word_count
+    return data, entry_count, vocab_count, vocab_size, token_count
+
 
 def find_matches(query, data):
     """
     Find, count and return all matches for a RegEx in each string in a list.
+    
     The RegEx should not contain groups (a constraint to allow the interface to be used by non-coders).
-    """
-    entry_count = 0 # initialise count of entries containing ≥1 match
-    token_counts = Counter() # initialise count of matching tokens
-    entry_texts = [] # initialise list of entries containing matches
 
-    for entry in data: # for each string in the list
-        match = re.findall(query, entry) # search for matches
-        if match: # if there are any matches
-            entry_count += 1 # increase the count of matching entries
+    Args:
+        query: a RegEx pattern
+        data: a list of strings (i.e. a compiled corpus)
+    """
+    entry_count = 0 # initialise a count of entries containing ≥1 match
+    entry_texts = [] # initialise a list of entries containing matches (will be capped at MAX_RETURNS)
+    token_counts = Counter() # initialise a count of matching tokens
+
+    for entry in data:
+        match = re.findall(query, entry)
+        if match:
+            entry_count += 1
             for m in match: # for each matching token
                 # add to the token counts, respecting case-sensitivity
                 if case_flag == re.IGNORECASE:
                     token_counts[m.lower()] += 1
                 else:
                     token_counts[m] += 1
-            if len(entry_texts) < MAX_RETURNS: # if number of recorded entries is not at results cap
+            if len(entry_texts) < MAX_RETURNS:
                 for m in set(match): # for each unique matching string
-                    # add HTML styling to the occurrences of the match in the entry
+                    # add HTML styling before adding to the return list
                     entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
-                entry_texts.append(entry.strip()) # add the styled entry to the match list
+                entry_texts.append(entry) # add the styled entry to the match list
 
     return entry_count, token_counts, entry_texts
 
+
 # User Interface
 st.set_page_config(page_title="Corpora", layout="wide") # browser tab title and page layout; must be first st call
-corpus_filenames = sorted( # determine corpus source options for the user based on filenames in DATA_FOLDER
+corpus_names = sorted( # determine corpus source options for the user based on filenames in DATA_FOLDER
     [f.rstrip(".txt").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".txt")]
 )
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large") # columns with widths and gap size
@@ -76,14 +89,14 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 # Search Parameters column
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source**:", corpus_filenames) # radio buttons for corpus sources
+    source = st.radio("**Source**:", corpus_names) # radio buttons for corpora
     st.caption("*All benchmark data is sourced exclusively from training datasets*")
     case_sensitive = st.toggle("case-sensitive")
     case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term**:").strip()
     st.caption("Use * as a wildcard and ^ to match the start of an entry")
     # compile a corpus whenever a new radio button is selected
-    corpus_data, corpus_entry_count, corpus_vocab, corpus_vocab_size, corpus_word_count = compile_corpus(source)
+    corpus_data, corpus_entry_count, corpus_vocab_count, corpus_vocab_size, corpus_token_count = compile_corpus(source)
 
 # Results column
 with results:
@@ -100,15 +113,16 @@ with corpus_stats:
         f"""
         - Entries: {corpus_entry_count:,}
         - Vocab size: {corpus_vocab_size:,}
-        - Word count: {corpus_word_count:,}
-        """)
+        - Token count: {corpus_token_count:,}
+        """
+    )
     if source.startswith("HotpotQA"):
         st.caption(HOTPOTQA_NOTICE)
     st.markdown("Top 1,000 Vocab Items:")
     vocab_table = pd.DataFrame( # convert string match data to table
-        {"word": corpus_vocab.keys(),
-        "count": corpus_vocab.values(),
-        "% in source": [round(100*(value/corpus_word_count), 2) or "<0.01" for value in corpus_vocab.values()]}
+        {"word": corpus_vocab_count.keys(),
+        "count": corpus_vocab_count.values(),
+        "% in source": [round(100*(value/corpus_token_count), 2) or "<0.01" for value in corpus_vocab_count.values()]}
     ).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
@@ -120,7 +134,7 @@ with corpus_stats:
             """
         )
 
-# Execute a search when a query is confirmed
+# execute a search when a query is given
 if query != "":
     # prohibit search terms that can cause conflicts with the RegEx mechanics
     if re.search(r'[\\\(\)\[\]\?\$\+]', query):
@@ -171,7 +185,7 @@ if query != "":
         with search_stats:
             if entry_texts:
                 entry_proportion = round(100*(entry_count/corpus_entry_count), 2) or "<0.01"
-                token_proportion = min(100.0, round(100*(token_total/corpus_word_count), 2)) or "<0.01"
+                token_proportion = min(100.0, round(100*(token_total/corpus_token_count), 2)) or "<0.01"
                 st.markdown(
                     f"""
                     - Entries with ≥1 match: {entry_proportion}%
