@@ -1,3 +1,3 @@
 # Corpora
 
-This is a search tool for some NLU benchmark datasets. You can interact with it at corpora.streamlit.app.
+This is a streamlit app you can visit [in your browser](corpora.streamlit.app) to perform text searches of some NLU benchmark datasets.
