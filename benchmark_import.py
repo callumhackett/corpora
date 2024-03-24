@@ -14,7 +14,7 @@ def import_benchmark_data(
         benchmark_name: one of "drop", "hotpot", "squad", for individualised processing
         inclusions: a list with any combination of "titles", "contexts", "questions" (default includes all)
         hotpot_levels: a list with any combination of "easy", "medium", "hard" to filter by difficulty (default ["hard"])
-        hotpot_distractors: a Boolean determining whether to include the distracting contexts with hotpot (default False)
+        hotpot_distractors: a Boolean for whether to include the distracting contexts with hotpot (default False)
     """
     # import the data and initialise the extraction
     with open(filepath, encoding="utf-8") as f:
