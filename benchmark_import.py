@@ -2,24 +2,26 @@ import json
 
 def import_benchmark_data(
         filepath, benchmark_name,
-        inclusions=["titles", "contexts", "questions"], hotpot_levels=["hard"], hotpot_distractors=False
+        inclusions=["titles", "contexts", "questions"], organise_by="cases",
+        hotpot_levels=["hard"], hotpot_distractors=False
     ):
     """
-    Import benchmark data from a JSON file into a list of dicts, where each dict encapsulates one test case.
-    
-    Each dict may have any of the keys "title", "contexts" and "questions", where "title" is a string describing the topic and "contexts" and "questions" are lists having as many items as there are contexts and questions per test case.
+    Import benchmark data from a JSON file into a list of test cases (each a dict) or a dict of content types (each a list).
+
+    The test case return gives a list of dicts, where each dict can have any of the keys "title", "contexts" and "questions" with lists of titles, contexts and questions per test case. The content type return gives a dict of "titles", "contexts" and "questions", where each has a list for all such content across all test cases.
 
     Args:
         filepath: the location of the JSON file
-        benchmark_name: one of "drop", "hotpot", "squad", for individualised processing
-        inclusions: a list with any combination of "titles", "contexts", "questions" (default includes all)
-        hotpot_levels: a list with any combination of "easy", "medium", "hard" to filter by difficulty (default ["hard"])
-        hotpot_distractors: a Boolean for whether to include the distracting contexts with hotpot (default False)
+        benchmark_name: one of "drop", "hotpot", "squad2" for individualised processing
+        inclusions: a list with any combination of "titles", "contexts", "questions" (default lists all)
+        organise_by: one of "cases", "content" to return either a list of test cases or a dict of content types (default "cases")
+        hotpot_levels: a list with any of "easy", "medium", "hard" to filter by difficulty (default ["hard"])
+        hotpot_distractors: a Boolean for whether to include the distractor contexts with hotpot (default False)
     """
     # import the data and initialise the extraction
     with open(filepath, encoding="utf-8") as f:
         source = json.load(f)
-    data = []
+    case_data = []
 
     if benchmark_name == "drop":
         # DROP has the form:
@@ -30,7 +32,7 @@ def import_benchmark_data(
                 extraction["contexts"] = [test_case["passage"].strip()]
             if "questions" in inclusions:
                 extraction["questions"] = [qa_pair["question"].strip() for qa_pair in test_case["qa_pairs"]]
-            data.append(extraction)
+            case_data.append(extraction)
 
     elif benchmark_name == "hotpot":
         # HotpotQA has the form:
@@ -53,9 +55,9 @@ def import_benchmark_data(
                     ]
             if "questions" in inclusions:
                 extraction["questions"] = [test_case["question"].strip()]
-            data.append(extraction)
+            case_data.append(extraction)
 
-    elif benchmark_name == "squad":
+    elif benchmark_name == "squad2":
         # SQuAD2.0 has the form:
         # {"data": [{"paragraphs": [{"qas": [{"question": QUESTION}, ...], "context": CONTEXT}, ...]}, ...]}
         source = source["data"]
@@ -63,11 +65,18 @@ def import_benchmark_data(
             for test_case in grouping["paragraphs"]:
                 extraction = {}
                 if "titles" in inclusions:
-                    extraction["title"] = grouping["title"]
+                    extraction["titles"] = grouping["title"]
                 if "contexts" in inclusions:
                     extraction["contexts"] = [test_case["context"].strip()]
                 if "questions" in inclusions:
                     extraction["questions"] = [qa_pair["question"].strip() for qa_pair in test_case["qas"]]
-                data.append(extraction)
+                case_data.append(extraction)
 
-    return data
+    if organise_by == "content":
+        content_data = {inclusion:[] for inclusion in inclusions}
+        for test_case in case_data:
+            for label, content in test_case.items():
+                content_data[label].extend(content)
+        return content_data
+
+    return case_data
