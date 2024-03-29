@@ -121,7 +121,7 @@ with corpus_stats:
         """
     )
     st.markdown("**Complexity Distribution** (hover to expand)")
-    st.image(f"data/{source.replace(" ", "_")}_complexity.png")
+    st.image(f"data/{source.replace(' ', '_')}_complexity.png")
     st.markdown("**Top Vocab**:")
     vocab_table = pd.DataFrame( # convert string match data to table
         {"word": corpus_vocab_count.keys(),
