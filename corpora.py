@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 CACHE_SIZE = 1 # number of compiled corpora to keep in memory
-DATA_FOLDER = "data" # folder with .txt files of line-separated corpus data; filenames are used in user selection
+DATA_FOLDER = "data" # folder with .tsv files of line-separated corpus text and complexity scores
 HOTPOTQA_NOTICE = (
     """
     The HotpotQA dataset has been filtered for contexts and questions labelled "hard", as the test set contains only 
@@ -18,12 +18,12 @@ MAX_RETURNS = 1000 # maximum number of examples to show in the main results tabl
 @st.cache_data(max_entries=CACHE_SIZE)
 def compile_corpus(source):
     """
-    Compile corpus data from a .txt source of line-separated entries into a list of strings.
+    Compile corpus data from a .tsv source corpus text with complexity scores.
 
-    The source is chosen by the user in Search Parameters.
+    The source is chosen by the user in Search Parameters. Options are derived from filenames.
 
     Args:
-        corpus_name: a string naming the corpus; this is determined by the user's selection
+        source: the name of the dataset (determined by user selection)
     """
     source = source.replace(" ", "_") # convert user-facing name to filename format
     data = [] # initialise the corpus
@@ -31,10 +31,9 @@ def compile_corpus(source):
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab counts
 
     with open(os.path.join(DATA_FOLDER, f"{source}.tsv"), encoding="utf-8") as f:
+        next(f) # skip the TSV header
         for line in f:
             line = line.split("\t")
-            if line[0] == "Text":
-                continue # skip the header
             # add the data to the corpus
             data.append({"text":line[0], "score":float(line[1])})
             # keep a vocab count, correcting for punctuation
@@ -51,25 +50,29 @@ def compile_corpus(source):
 
 def find_matches(query, complexity_range, data):
     """
-    Find, count and return all matches for a RegEx in each string in a list.
+    Find, count and return all matches for a RegEx in each text of the scored corpus.
     
     The RegEx should not contain groups (a constraint to allow the interface to be used by non-coders).
 
     Args:
         query: a RegEx pattern
-        data: a list of strings (i.e. a compiled corpus)
+        complexity_range: a tuple of the min and max complexity values to filter by
+        data: a list of scored texts
     """
     entry_count = 0 # initialise a count of entries containing ≥1 match
+    entries_in_range = 0 # initialise a count of entries containing ≥1 match in the specified complexity range
     entry_texts = [] # initialise a list of entries containing matches (will be capped at MAX_RETURNS)
     token_counts = Counter() # initialise a count of matching tokens
 
     for entry in data:
         text = entry["text"]
         score = entry["score"]
-        in_range = score > complexity_range[0] and score < complexity_range[1]
+        in_range = score >= complexity_range[0] and score <= complexity_range[1]
         match = re.findall(query, text)
         if match:
             entry_count += 1
+            if in_range:
+                entries_in_range += 1
             for m in match: # for each matching token
                 token_counts[m.lower()] += 1
             # filter the matches that appear in the table
@@ -79,7 +82,7 @@ def find_matches(query, complexity_range, data):
                     text = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", text)
                 entry_texts.append(text.strip()) # add the styled entry to the match list
 
-    return entry_count, token_counts, entry_texts
+    return entry_count, entries_in_range, token_counts, entry_texts
 
 
 # User Interface
@@ -93,10 +96,15 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 with parameters:
     st.markdown("#### Search Parameters")
     source = st.radio("**Source**:", corpus_names) # radio buttons for corpora
-    st.caption("*All benchmark data is sourced exclusively from training datasets*")
     query = st.text_input("**Search term**:").strip()
-    st.caption("Use * as a wildcard and ^ to match the start of an entry")
-    complexity_range = st.slider("**Complexity range:**", min_value=0.0, max_value=1.0, value=(0.0, 1.0), step=0.01)
+    st.caption("Use * as a wildcard and start with ^ to match at the start of a text")
+    complexity_range = st.select_slider(
+        label = "**Complexity range**:",
+        options = [n/100 for n in range(0,101)],
+        value=(0.0, 1.0),
+        format_func = lambda x: x if x != 0 and x != 1.0 else ""
+    )
+    st.caption("*All benchmark data is sourced exclusively from training datasets*")
     # compile a corpus whenever a new radio button is selected
     corpus_data, corpus_entry_count, corpus_vocab_count, corpus_vocab_size, corpus_token_count = compile_corpus(source)
 
@@ -111,15 +119,6 @@ with statistics:
     search_stats, corpus_stats = st.tabs(["Search Stats", "Corpus Stats"])
 
 with corpus_stats:
-    if source.startswith("HotpotQA"):
-        st.caption(HOTPOTQA_NOTICE)
-    elif source == "Spoken English":
-        st.caption(
-            """
-            The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
-            a naturalistic point of comparison against written texts.
-            """
-        )
     st.markdown(
         f"""
         - Entries: {corpus_entry_count:,}
@@ -137,6 +136,15 @@ with corpus_stats:
     ).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
+    if source.startswith("HotpotQA"):
+        st.caption(HOTPOTQA_NOTICE)
+    elif source == "Spoken English":
+        st.caption(
+            """
+            The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
+            a naturalistic point of comparison against written texts.
+            """
+        )
 
 # execute a search when a query is given
 if query != "":
@@ -155,14 +163,15 @@ if query != "":
             st.markdown(
                 """
                 ⚠️ You can use wildcards but you need to use them *with* something: other words or even just more 
-                wildcards. If you want to search for a single wildcard to get a vocab list, check the 'Corpus Stats' 
-                tab under 'Statistics'.
+                than one wildcard. If you just want a list of examples without a specific query, search for ^* (i.e. 
+                all texts with a starting word). If you want a vocab list, check the 'Corpus Stats' tab under 
+                'Statistics'.
                 """
             )
     else:
-        query = query.replace("*", "[\w\",'-]+").replace(".", "\.") # convert user-facing wildcard to RegEx pattern
+        query = query.replace("*", "[\w\",'\-\<\+“”\.\\\\/:]+").replace(".", "\.") # convert user-facing wildcard to RegEx pattern
         query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE) # compile query as RegEx
-        entry_count, token_counts, entry_texts = find_matches(query_re, complexity_range, corpus_data) # extract search results
+        entry_count, entries_in_range, token_counts, entry_texts = find_matches(query_re, complexity_range, corpus_data) # extract search results
         token_total = sum(token_counts.values())
 
         # display results
@@ -189,26 +198,24 @@ if query != "":
         with search_stats:
             if entry_texts:
                 entry_proportion = round(100*(entry_count/corpus_entry_count), 2) or "<0.01"
-                token_proportion = min(100.0, round(100*(token_total/corpus_token_count), 2)) or "<0.01"
-                if source.startswith("HotpotQA"):
-                    st.caption(HOTPOTQA_NOTICE)
+                entries_in_range_proportion = round(100*(entries_in_range/corpus_entry_count), 2) or "<0.01"
                 st.markdown(
                     f"""
-                    - Entries with ≥1 match: {entry_proportion}%
-                    - Proportion of all source text: {token_proportion}%
-                    - Unique matches: {len(token_counts.keys()):,}
-                    - Total matches: {token_total:,}
+                    - Matches: {entry_count:,} ({entry_proportion}%)
+                    - Matches in complexity range: {entries_in_range:,} ({entries_in_range_proportion}%)
                     """
                 )
                 stats_table = pd.DataFrame( # convert string match data to table
-                    {"string": token_counts.keys(),
+                    {"match": token_counts.keys(),
                     "count": token_counts.values(),
                     "% in set": [str(round(100*(value/token_total), 2) or "<0.01") for value in token_counts.values()]}
-                ).sort_values(by=["count", "string"], ascending=False).reset_index(drop=True)
+                ).sort_values(by=["count", "match"], ascending=False).reset_index(drop=True)
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True)
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
+                if source.startswith("HotpotQA"):
+                    st.caption(HOTPOTQA_NOTICE)
                 if source == "Spoken English":
                     st.caption(
                         """
