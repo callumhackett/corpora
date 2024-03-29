@@ -16,7 +16,7 @@ HOTPOTQA_NOTICE = (
 MAX_RETURNS = 1000 # maximum number of examples to show in the main results table
 
 @st.cache_data(max_entries=CACHE_SIZE)
-def compile_corpus(corpus_name):
+def compile_corpus(source):
     """
     Compile corpus data from a .txt source of line-separated entries into a list of strings.
 
@@ -25,12 +25,12 @@ def compile_corpus(corpus_name):
     Args:
         corpus_name: a string naming the corpus; this is determined by the user's selection
     """
-    corpus_name = corpus_name.replace(" ", "_") # convert user-facing name to filename format
+    source = source.replace(" ", "_") # convert user-facing name to filename format
     data = [] # initialise the corpus
     vocab_count = Counter() # initialise a vocab count
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab counts
 
-    with open(os.path.join(DATA_FOLDER, f"{corpus_name}.tsv"), encoding="utf-8") as f:
+    with open(os.path.join(DATA_FOLDER, f"{source}.tsv"), encoding="utf-8") as f:
         for line in f:
             line = line.split("\t")
             if line[0] == "Text":
