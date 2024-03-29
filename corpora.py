@@ -113,6 +113,13 @@ with statistics:
 with corpus_stats:
     if source.startswith("HotpotQA"):
         st.caption(HOTPOTQA_NOTICE)
+    elif source == "Spoken English":
+        st.caption(
+            """
+            The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
+            a naturalistic point of comparison against written texts.
+            """
+        )
     st.markdown(
         f"""
         - Entries: {corpus_entry_count:,}
@@ -130,13 +137,6 @@ with corpus_stats:
     ).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
-    if source == "Spoken English":
-        st.caption(
-            """
-            The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
-            a naturalistic point of comparison against written texts.
-            """
-        )
 
 # execute a search when a query is given
 if query != "":
