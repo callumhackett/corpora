@@ -201,8 +201,8 @@ if query != "":
                 entries_in_range_proportion = round(100*(entries_in_range/corpus_entry_count), 2) or "<0.01"
                 st.markdown(
                     f"""
-                    - Matches: {entry_count:,} ({entry_proportion}%)
                     - Matches in complexity range: {entries_in_range:,} ({entries_in_range_proportion}%)
+                    - Matches in whole dataset: {entry_count:,} ({entry_proportion}%)
                     """
                 )
                 stats_table = pd.DataFrame( # convert string match data to table
