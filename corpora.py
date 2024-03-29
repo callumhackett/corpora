@@ -190,6 +190,8 @@ if query != "":
             if entry_texts:
                 entry_proportion = round(100*(entry_count/corpus_entry_count), 2) or "<0.01"
                 token_proportion = min(100.0, round(100*(token_total/corpus_token_count), 2)) or "<0.01"
+                if source.startswith("HotpotQA"):
+                    st.caption(HOTPOTQA_NOTICE)
                 st.markdown(
                     f"""
                     - Entries with ≥1 match: {entry_proportion}%
@@ -207,7 +209,6 @@ if query != "":
                 st.dataframe(stats_table, use_container_width=True)
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
-                    st.caption(HOTPOTQA_NOTICE)
                 if source == "Spoken English":
                     st.caption(
                         """
