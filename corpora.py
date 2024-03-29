@@ -30,12 +30,15 @@ def compile_corpus(corpus_name):
     vocab_count = Counter() # initialise a vocab count
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab counts
 
-    with open(os.path.join(DATA_FOLDER, f"{corpus_name}.txt"), encoding="utf-8") as f:
+    with open(os.path.join(DATA_FOLDER, f"{corpus_name}.tsv"), encoding="utf-8") as f:
         for line in f:
+            line = line.split("\t")
+            if line[0] == "Text":
+                continue # skip the header
             # add the data to the corpus
-            data.append(line)
+            data.append({"text":line[0], "score":float(line[1])})
             # keep a vocab count, correcting for punctuation
-            for word in re.sub(punctuation, "", line).split():
+            for word in re.sub(punctuation, "", line[0]).split():
                 if word.isalpha():
                     vocab_count[word.lower()] += 1
 
@@ -46,7 +49,7 @@ def compile_corpus(corpus_name):
     return data, entry_count, vocab_count, vocab_size, token_count
 
 
-def find_matches(query, data):
+def find_matches(query, complexity_range, data):
     """
     Find, count and return all matches for a RegEx in each string in a list.
     
@@ -61,20 +64,20 @@ def find_matches(query, data):
     token_counts = Counter() # initialise a count of matching tokens
 
     for entry in data:
-        match = re.findall(query, entry)
+        text = entry["text"]
+        score = entry["score"]
+        in_range = score > complexity_range[0] and score < complexity_range[1]
+        match = re.findall(query, text)
         if match:
             entry_count += 1
             for m in match: # for each matching token
-                # add to the token counts, respecting case-sensitivity
-                if case_flag == re.IGNORECASE:
-                    token_counts[m.lower()] += 1
-                else:
-                    token_counts[m] += 1
-            if len(entry_texts) < MAX_RETURNS:
+                token_counts[m.lower()] += 1
+            # filter the matches that appear in the table
+            if len(entry_texts) < MAX_RETURNS and in_range:
                 for m in set(match): # for each unique matching string
                     # add HTML styling before adding to the return list
-                    entry = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", entry)
-                entry_texts.append(entry.strip()) # add the styled entry to the match list
+                    text = re.sub(r"\b" + m + r"\b", '<font color="red"><b>' + m + "</b></font>", text)
+                entry_texts.append(text.strip()) # add the styled entry to the match list
 
     return entry_count, token_counts, entry_texts
 
@@ -82,7 +85,7 @@ def find_matches(query, data):
 # User Interface
 st.set_page_config(page_title="Corpora", layout="wide") # browser tab title and page layout; must be first st call
 corpus_names = sorted( # determine corpus source options for the user based on filenames in DATA_FOLDER
-    [f.rstrip(".txt").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".txt")]
+    [f.replace(".tsv", "").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".tsv")]
 )
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large") # columns with widths and gap size
 
@@ -91,10 +94,9 @@ with parameters:
     st.markdown("#### Search Parameters")
     source = st.radio("**Source**:", corpus_names) # radio buttons for corpora
     st.caption("*All benchmark data is sourced exclusively from training datasets*")
-    case_sensitive = st.toggle("case-sensitive")
-    case_flag = re.IGNORECASE if not case_sensitive else 0
     query = st.text_input("**Search term**:").strip()
     st.caption("Use * as a wildcard and ^ to match the start of an entry")
+    complexity_range = st.slider("**Complexity range:**", min_value=0.0, max_value=1.0, value=(0.0, 1.0), step=0.01)
     # compile a corpus whenever a new radio button is selected
     corpus_data, corpus_entry_count, corpus_vocab_count, corpus_vocab_size, corpus_token_count = compile_corpus(source)
 
@@ -109,6 +111,8 @@ with statistics:
     search_stats, corpus_stats = st.tabs(["Search Stats", "Corpus Stats"])
 
 with corpus_stats:
+    if source.startswith("HotpotQA"):
+        st.caption(HOTPOTQA_NOTICE)
     st.markdown(
         f"""
         - Entries: {corpus_entry_count:,}
@@ -116,9 +120,9 @@ with corpus_stats:
         - Token count: {corpus_token_count:,}
         """
     )
-    if source.startswith("HotpotQA"):
-        st.caption(HOTPOTQA_NOTICE)
-    st.markdown("Top 1,000 Vocab Items:")
+    st.markdown("**Complexity Distribution** (hover to expand)")
+    st.image(f"data/{source.replace(" ", "_")}_complexity.png")
+    st.markdown("**Top Vocab**:")
     vocab_table = pd.DataFrame( # convert string match data to table
         {"word": corpus_vocab_count.keys(),
         "count": corpus_vocab_count.values(),
@@ -157,8 +161,8 @@ if query != "":
             )
     else:
         query = query.replace("*", "[\w\",'-]+").replace(".", "\.") # convert user-facing wildcard to RegEx pattern
-        query_re = re.compile(r"\b" + query + r"\b", flags=case_flag) # compile query as RegEx
-        entry_count, token_counts, entry_texts = find_matches(query_re, corpus_data) # extract search results
+        query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE) # compile query as RegEx
+        entry_count, token_counts, entry_texts = find_matches(query_re, complexity_range, corpus_data) # extract search results
         token_total = sum(token_counts.values())
 
         # display results
