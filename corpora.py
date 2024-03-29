@@ -29,7 +29,7 @@ def compile_corpus(source):
     vocab = Counter() # initialise a vocab count
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab count
 
-    with open(os.path.join(DATA_FOLDER, f"{source.replace(" ", "_")}.tsv"), encoding="utf-8") as f:
+    with open(os.path.join(DATA_FOLDER, f"{source.replace(' ', '_')}.tsv"), encoding="utf-8") as f:
         next(f) # skip the header
         for line in f:
             line = line.split("\t")
