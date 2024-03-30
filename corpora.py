@@ -211,7 +211,7 @@ if query != "":
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True, hide_index=True)
 
-                st.markdown(f"**In complexity range** ({complexity_range[0]}-{complexity_range[1]})")
+                st.markdown(f"**In complexity range** ({complexity_range[0]}–{complexity_range[1]})")
                 
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": in_range_matches.keys(),
