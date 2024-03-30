@@ -175,8 +175,10 @@ if query != "":
 
         # display results
         with results:       
-            if not entry_texts:
+            if not dataset_matches:
                 st.markdown("There were no results for your search.")
+            elif dataset_matches and not entry_texts:
+                st.markdown("There were no results for your search in that complexity range.")
             else:
                 if len(entry_texts) == MAX_RETURNS:
                     st.markdown(
@@ -195,8 +197,8 @@ if query != "":
 
         # display stats
         with search_stats:
-            if entry_texts:
-                st.markdown("**Whole dataset**")
+            if dataset_matches:
+                st.markdown("**In whole dataset**")
 
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": dataset_matches.keys(),
