@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 from collections import Counter
@@ -194,6 +195,20 @@ if query != "":
                     st.markdown( # convert pd table to HTML to allow text highlighting
                         results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True
                     )
+                create_download = st.button("Create translation data file")
+                if create_download:
+                    test_list = [["this is one column"]]
+                    with open("test_translation_data.csv", mode="w") as f:
+                        writer = csv.writer(f)
+                        for row in test_list:
+                            writer.writerow(row)
+                    with open("test_translation_data.csv", "rb") as f:
+                        btn = st.download_button(
+                            label="Download",
+                            data=f,
+                            file_name="test.csv",
+                            mime="text/csv"
+                        )
 
         # display stats
         with search_stats:
