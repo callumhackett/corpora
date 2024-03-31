@@ -98,18 +98,19 @@ def reset_download():
     return None
 
 
-# User Interface
+# USER INTERFACE
 st.set_page_config(page_title="Corpora", layout="wide") # browser tab title and page layout; must be first st call
 if "download" not in st.session_state: # initialise state of translation data download file
     st.session_state["download"] = False
-corpus_names = sorted( # determine corpus source options for the user based on filenames in DATA_FOLDER
+corpus_names = sorted( # create corpus source options for the user based on filenames in DATA_FOLDER
     [f.replace(".tsv", "").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".tsv")]
 )
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large") # columns with widths and gap size
 
-# Search Parameters column
+# SEARCH PARAMETERS
 with parameters:
     st.markdown("#### Search Parameters")
+    # USER OPTIONS
     source = st.radio("**Source**:", corpus_names, on_change=reset_download)
     query = st.text_input("**Search term**:", on_change=reset_download).strip()
     st.caption("Use * as a wildcard and start with ^ to match at the start of a text")
@@ -120,23 +121,25 @@ with parameters:
         format_func = lambda x: x if x != 0 and x != 1.0 else "",
         on_change=reset_download
     )
-    st.caption("*All benchmark data is sourced exclusively from training datasets*")
-    # compile a corpus whenever a new radio button is selected
+    st.caption("*All benchmark data is sourced exclusively from open sets*")
+
+    # COMPILE ON USER SELECTION
     corpus_data, corpus_vocab = compile_corpus(source)
     corpus_entry_count = len(corpus_data)
     corpus_vocab_size = len(corpus_vocab)
     corpus_token_count = sum(corpus_vocab.values())
 
-# Results column
+# DISPLAYED RESULTS PREAMBLE
 with results:
     st.markdown(f"#### Results")
     st.write("*Select a data source, type a search term, then press Enter*")
 
-# Statistics column
+# STATISTICS PREAMBLAE
 with statistics:
-    st.markdown("#### Statistics")
-    search_stats, corpus_stats = st.tabs(["Search Stats", "Corpus Stats"])
+    st.markdown("#### Data")
+    search_data, corpus_stats = st.tabs(["Search", "Corpus Stats"])
 
+# CORPUS STATISTICS
 with corpus_stats:
     st.markdown(
         f"""
@@ -148,7 +151,7 @@ with corpus_stats:
     st.markdown("**Complexity Distribution** (hover to expand)")
     st.image(f"data/images/{source.replace(' ', '_')}_complexity.png")
     st.markdown("**Top Vocab**:")
-
+    # CORPUS VOCABULARY TABLE
     vocab_table = pd.DataFrame({ # convert string match data to table
         "word": corpus_vocab.keys(),
         "count": corpus_vocab.values(),
@@ -156,7 +159,7 @@ with corpus_stats:
     }).sort_values(by=["count", "word"], ascending=False).reset_index(drop=True)
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
-
+    # DATA NOTICES
     if source.startswith("HotpotQA"):
         st.caption(HOTPOTQA_NOTICE)
     elif source == "Spoken English":
@@ -167,9 +170,9 @@ with corpus_stats:
             """
         )
 
-# execute a search when a query is given
+# SEARCH EXECUTION
 if query != "":
-    # prohibit search terms that can cause conflicts with the RegEx mechanics
+    # SEARCH TERM PROHIBITIONS
     if re.search(r'[\\\(\)\[\]\?\$\+]', query):
         with results:
             st.markdown(
@@ -189,19 +192,23 @@ if query != "":
                 'Statistics'.
                 """
             )
+    # LEGITIMATE SEARCH
     else:
-        query = query.replace("*", "[\w\",'\-\<\+“”\.\\\\/:]+").replace(".", "\.") # convert text wildcard to RegEx
-        query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE) # compile query as RegEx
-        dataset_matches, in_range_matches, entry_texts = find_matches(query_re, complexity_range, corpus_data) # extract search results
+        # PREPARE AND PERFORM SEARCH
+        query = query.replace("*", "[\w\",'\-\<\+“”\.\\\\/:]+").replace(".", "\.")
+        query_re = re.compile(r"\b" + query + r"\b", flags=re.IGNORECASE)
+        dataset_matches, in_range_matches, entry_texts = find_matches(query_re, complexity_range, corpus_data)
         match_count = sum(dataset_matches.values())
         in_range_match_count = sum(in_range_matches.values())
 
-        # display results
-        with results:       
+        # DISPLAY SEARCH RESULTS UP TO MAX
+        with results:
+            # NULL RESULTS       
             if not dataset_matches:
                 st.markdown("There were no results for your search.")
             elif dataset_matches and not entry_texts:
                 st.markdown("There were no results for your search in that complexity range.")
+            # POSITIVE RESULTS
             else:
                 if len(entry_texts) == MAX_RETURNS:
                     st.markdown(
@@ -210,41 +217,20 @@ if query != "":
                         {MAX_RETURNS:,}
                         """
                     )
-                results_table_container = st.container(height=450, border=False) # place results in fixed-height box
+                # RESULTS TABLE
+                results_table_container = st.container(height=500, border=False) # place results in fixed-height box
                 with results_table_container.container():
                     results_table = pd.DataFrame({"": entry_texts}) # convert search results to table
                     results_table.index += 1 # set row index to start from 1 instead of 0
                     st.markdown( # convert pd table to HTML to allow text highlighting
                         results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True
                     )
-                if not st.session_state["download"]:
-                    create_download_button = st.button(
-                        "Create translation data file", on_click=create_download, key="create_button"
-                    )
-                else:
-                    filename = f"{source.replace(' ', '_')}_data_{date.today()}.csv"
-                    csv_header = ["Sentence", "UL Translation", "Date Added", "Date Modified", "Assignee", "Reviewer", "Translation Status", "Translation Level"]
-                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="w") as f:
-                        writer = csv.writer(f)
-                        writer.writerow(csv_header)
-                        for text in entry_texts:
-                            text = text.replace('<font color="red"><b>', "")
-                            text = text.replace('</b></font>', "")
-                            writer.writerow([text, "", f"{date.today()}", f"{date.today()}", "", "", "", ""])
-                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="rb") as f:
-                        data_download_button = st.download_button(
-                            label="Download data",
-                            data=f,
-                            file_name=filename,
-                            mime="text/csv",
-                            type="primary"
-                        )
 
-        # display stats
-        with search_stats:
+        # DISPLAY SEARCH STATISTICS
+        with search_data:
             if dataset_matches:
-                st.markdown("**In whole dataset**")
-
+                st.markdown("**Results in whole dataset**")
+                # WHOLE DATASET STATS
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": dataset_matches.keys(),
                     "%": [str(round(100*(value/match_count), 2) or "<0.01") for value in dataset_matches.values()],
@@ -256,8 +242,8 @@ if query != "":
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True, hide_index=True)
 
-                st.markdown(f"**In complexity range** ({complexity_range[0]}–{complexity_range[1]})")
-                
+                st.markdown(f"**Results in complexity range** ({complexity_range[0]}–{complexity_range[1]})")
+                # COMPLEXITY RANGE STATS
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": in_range_matches.keys(),
                     "%": [
@@ -269,7 +255,39 @@ if query != "":
                 }).sort_values(by=["entries", "match"], ascending=False).reset_index(drop=True)
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True, hide_index=True)
-
+                # DATA DOWNLOAD OPTIONS
+                st.markdown("**Download as translation data**")
+                download_quantity = st.number_input(
+                        "Amount:",
+                        min_value=1,
+                        max_value=len(entry_texts),
+                        value=len(entry_texts),
+                        on_change=reset_download
+                    )
+                if not st.session_state["download"]:
+                    create_download_button = st.button(
+                        "Click to create file", on_click=create_download, key="create_button"
+                    )
+                # CREATE CSV DATA FOR DOWNLOAD
+                else:
+                    filename = f"{source.replace(' ', '_')}_data_{date.today()}.csv"
+                    csv_header = ["Sentence", "UL Translation", "Date Added", "Date Modified", "Assignee", "Reviewer", "Translation Status", "Translation Level"]
+                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="w") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(csv_header)
+                        for text in entry_texts[:download_quantity]:
+                            text = text.replace('<font color="red"><b>', "")
+                            text = text.replace('</b></font>', "")
+                            writer.writerow([text, "", f"{date.today()}", f"{date.today()}", "", "", "", ""])
+                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="rb") as f:
+                        data_download_button = st.download_button(
+                            label="Download file",
+                            data=f,
+                            file_name=filename,
+                            mime="text/csv",
+                            type="primary"
+                        )
+                # DATA NOTICES
                 if source == "HotpotQA Contexts":
                     st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
                 if source.startswith("HotpotQA"):
