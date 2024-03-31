@@ -2,6 +2,7 @@ import csv
 import os
 import re
 from collections import Counter
+from datetime import date
 
 import pandas as pd
 import streamlit as st
@@ -19,7 +20,7 @@ MAX_RETURNS = 1000 # maximum number of examples to show in the main results tabl
 @st.cache_data(max_entries=CACHE_SIZE)
 def compile_corpus(source):
     """
-    Compile corpus data from a .tsv source with corpus texts and complexity scores.
+    Compile corpus data from a TSV source containing corpus texts and complexity scores.
 
     The source is chosen by the user in Search Parameters. User options are derived from filenames.
 
@@ -79,8 +80,28 @@ def find_matches(query, complexity_range, corpus):
     return dataset_matches, in_range_matches, display_texts
 
 
+def create_download():
+    """
+    Change the app session state to mark that a translation data file is ready for download.
+    """
+    st.session_state["download"] = True
+
+    return None
+
+
+def reset_download():
+    """
+    Change the app session state to mark that there is no data file to download.
+    """
+    st.session_state["download"] = False
+
+    return None
+
+
 # User Interface
 st.set_page_config(page_title="Corpora", layout="wide") # browser tab title and page layout; must be first st call
+if "download" not in st.session_state: # initialise state of translation data download file
+    st.session_state["download"] = False
 corpus_names = sorted( # determine corpus source options for the user based on filenames in DATA_FOLDER
     [f.replace(".tsv", "").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".tsv")]
 )
@@ -89,14 +110,15 @@ parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="larg
 # Search Parameters column
 with parameters:
     st.markdown("#### Search Parameters")
-    source = st.radio("**Source**:", corpus_names)
-    query = st.text_input("**Search term**:").strip()
+    source = st.radio("**Source**:", corpus_names, on_change=reset_download)
+    query = st.text_input("**Search term**:", on_change=reset_download).strip()
     st.caption("Use * as a wildcard and start with ^ to match at the start of a text")
     complexity_range = st.select_slider(
         label = "**Complexity range**:",
         options = [n/100 for n in range(0,101)],
         value=(0.0, 1.0),
-        format_func = lambda x: x if x != 0 and x != 1.0 else ""
+        format_func = lambda x: x if x != 0 and x != 1.0 else "",
+        on_change=reset_download
     )
     st.caption("*All benchmark data is sourced exclusively from training datasets*")
     # compile a corpus whenever a new radio button is selected
@@ -188,26 +210,34 @@ if query != "":
                         {MAX_RETURNS:,}
                         """
                     )
-                results_table_container = st.container(height=500, border=False) # place results in fixed-height box
+                results_table_container = st.container(height=450, border=False) # place results in fixed-height box
                 with results_table_container.container():
                     results_table = pd.DataFrame({"": entry_texts}) # convert search results to table
                     results_table.index += 1 # set row index to start from 1 instead of 0
                     st.markdown( # convert pd table to HTML to allow text highlighting
                         results_table.to_html(escape=False, header=False, bold_rows=False), unsafe_allow_html=True
                     )
-                create_download = st.button("Create translation data file")
-                if create_download:
-                    test_list = [["this is one column"]]
-                    with open("test_translation_data.csv", mode="w") as f:
+                if not st.session_state["download"]:
+                    create_download_button = st.button(
+                        "Create translation data file", on_click=create_download, key="create_button"
+                    )
+                else:
+                    filename = f"{source.replace(' ', '_')}_data_{date.today()}.csv"
+                    csv_header = ["Sentence", "UL Translation", "Date Added", "Date Modified", "Assignee", "Reviewer", "Translation Status", "Translation Level"]
+                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="w") as f:
                         writer = csv.writer(f)
-                        for row in test_list:
-                            writer.writerow(row)
-                    with open("test_translation_data.csv", "rb") as f:
-                        btn = st.download_button(
-                            label="Download",
+                        writer.writerow(csv_header)
+                        for text in entry_texts:
+                            text = text.replace('<font color="red"><b>', "")
+                            text = text.replace('</b></font>', "")
+                            writer.writerow([text, "", f"{date.today()}", f"{date.today()}", "", "", "", ""])
+                    with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="rb") as f:
+                        data_download_button = st.download_button(
+                            label="Download data",
                             data=f,
-                            file_name="test.csv",
-                            mime="text/csv"
+                            file_name=filename,
+                            mime="text/csv",
+                            type="primary"
                         )
 
         # display stats
