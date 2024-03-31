@@ -288,10 +288,6 @@ if query != "":
                             type="primary"
                         )
                 # DATA NOTICES
-                if source == "HotpotQA Contexts":
-                    st.caption("Each of the multiple contexts per HotpotQA question is counted as one entry.")
-                if source.startswith("HotpotQA"):
-                    st.caption(HOTPOTQA_NOTICE)
                 if source == "Spoken English":
                     st.caption(
                         """
