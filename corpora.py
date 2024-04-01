@@ -137,7 +137,9 @@ with results:
 # STATISTICS PREAMBLAE
 with statistics:
     st.markdown("#### Data")
-    search_data, corpus_stats = st.tabs(["Search", "Corpus Stats"])
+    search_stats, corpus_stats, translation_data = st.tabs(
+        ["Search Stats", "Corpus Stats", "Translation Data"]
+    )
 
 # CORPUS STATISTICS
 with corpus_stats:
@@ -227,9 +229,9 @@ if query != "":
                     )
 
         # DISPLAY SEARCH STATISTICS
-        with search_data:
+        with search_stats:
             if dataset_matches:
-                st.markdown("**Results in whole dataset**")
+                st.markdown(f"**Results in whole dataset** ({match_count:,})")
                 # WHOLE DATASET STATS
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": dataset_matches.keys(),
@@ -242,7 +244,7 @@ if query != "":
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True, hide_index=True)
 
-                st.markdown(f"**Results in complexity range** ({complexity_range[0]}–{complexity_range[1]})")
+                st.markdown(f"**Results in complexity range** ({in_range_match_count:,})")
                 # COMPLEXITY RANGE STATS
                 stats_table = pd.DataFrame({ # convert string match data to table
                     "match": in_range_matches.keys(),
@@ -255,8 +257,24 @@ if query != "":
                 }).sort_values(by=["entries", "match"], ascending=False).reset_index(drop=True)
                 stats_table.index += 1 # set row index to start from 1 instead of 0
                 st.dataframe(stats_table, use_container_width=True, hide_index=True)
+                # DATA NOTICES
+                if source == "Spoken English":
+                    st.caption(
+                        """
+                        An ‘entry’ in the Spoken English source is roughly a turn in a conversation but this is 
+                        situation-specific.
+                        """
+                    )
+        
+        with translation_data:
+            if dataset_matches:
                 # DATA DOWNLOAD OPTIONS
-                st.markdown("**Download as translation data**")
+                st.markdown(
+                    """
+                    You can download your search results in CSV format to use as translation data. Just set an amount 
+                    to include (the default is the highest of your results and 1,000) and press the buttons.
+                    """
+                )
                 download_quantity = st.number_input(
                         "Amount:",
                         min_value=1,
@@ -287,11 +305,3 @@ if query != "":
                             mime="text/csv",
                             type="primary"
                         )
-                # DATA NOTICES
-                if source == "Spoken English":
-                    st.caption(
-                        """
-                        An ‘entry’ in the Spoken English source is roughly a turn in a conversation but this is 
-                        situation-specific.
-                        """
-                    )
