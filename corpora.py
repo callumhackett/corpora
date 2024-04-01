@@ -4,7 +4,6 @@ import re
 from collections import Counter
 from datetime import date
 
-import nltk
 import pandas as pd
 import streamlit as st
 from nltk.tokenize import sent_tokenize
@@ -112,7 +111,6 @@ corpus_names = sorted( # create corpus source options for the user based on file
     [f.replace(".tsv", "").replace("_", " ") for f in os.listdir(DATA_FOLDER) if f.endswith(".tsv")]
 )
 parameters, results, statistics = st.columns(spec=[0.2, 0.525, 0.275], gap="large") # columns with widths and gap size
-#nltk.download('punkt') # required for sentence tokenisation
 
 # SEARCH PARAMETERS
 with parameters:
