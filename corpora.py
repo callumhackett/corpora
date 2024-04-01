@@ -6,6 +6,7 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
+from nltk.tokenize import sent_tokenize
 
 CACHE_SIZE = 1 # number of compiled corpora to keep in memory
 DATA_FOLDER = "data" # folder with .tsv files of line-separated corpus text and complexity scores
@@ -18,7 +19,7 @@ HOTPOTQA_NOTICE = (
 MAX_RETURNS = 1000 # maximum number of examples to show in the main results table
 
 @st.cache_data(max_entries=CACHE_SIZE)
-def compile_corpus(source):
+def compile_corpus(source, resolved):
     """
     Compile corpus data from a TSV source containing corpus texts and complexity scores.
 
@@ -26,6 +27,7 @@ def compile_corpus(source):
 
     Args:
         source: the name of the dataset (determined by user selection)
+        resolved: a Boolean for whether to load original or coreference-resolved texts
     """
     corpus_data = [] # initialise the corpus
     vocab = Counter() # initialise a vocab count
@@ -35,7 +37,10 @@ def compile_corpus(source):
         next(f) # skip the header
         for line in f:
             line = line.split("\t")
-            corpus_data.append({"text":line[0], "score":float(line[1])})
+            if not resolved:
+                corpus_data.append({"text":line[0], "score":float(line[2])})
+            else:
+                corpus_data.append({"text":line[1], "score":float(line[2])})
             # count the vocab, correcting for punctuation
             for word in re.sub(punctuation, "", line[0]).split():
                 if word.isalpha():
@@ -121,10 +126,10 @@ with parameters:
         format_func = lambda x: x if x != 0 and x != 1.0 else "",
         on_change=reset_download
     )
-    st.caption("*All benchmark data is sourced exclusively from open sets*")
+    resolve_corefs = st.toggle("Resolve coreferences", on_change=reset_download)
 
     # COMPILE ON USER SELECTION
-    corpus_data, corpus_vocab = compile_corpus(source)
+    corpus_data, corpus_vocab = compile_corpus(source, resolved=resolve_corefs)
     corpus_entry_count = len(corpus_data)
     corpus_vocab_size = len(corpus_vocab)
     corpus_token_count = sum(corpus_vocab.values())
@@ -282,6 +287,7 @@ if query != "":
                         on_change=reset_download
                     )
                 tags = st.text_input("Tags (optional)", on_change=reset_download)
+                single_sentences = st.toggle("Extract single sentences", on_change=reset_download)
                 if not st.session_state["download"]:
                     create_download_button = st.button(
                         "Click to create file", on_click=create_download, key="create_button"
@@ -296,7 +302,12 @@ if query != "":
                         for text in entry_texts[:download_quantity]:
                             text = text.replace('<font color="red"><b>', "")
                             text = text.replace('</b></font>', "")
-                            writer.writerow(["", text, "", "", "NOT_STARTED", "", "", tags, ""])
+                            if single_sentences:
+                                sentences = sent_tokenize(text)
+                                for sentence in sentences:
+                                    writer.writerow(["", sentence, "", "", "NOT_STARTED", "", "", tags, ""])
+                            else:
+                                writer.writerow(["", text, "", "", "NOT_STARTED", "", "", tags, ""])
                     with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="rb") as f:
                         data_download_button = st.download_button(
                             label="Download file",
