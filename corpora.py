@@ -260,8 +260,8 @@ if query != "":
                 download_quantity = st.number_input(
                         "Amount:",
                         min_value=1,
-                        max_value=len(entry_texts),
-                        value=len(entry_texts),
+                        max_value=len(entry_texts) or 1,
+                        value=len(entry_texts) or 1,
                         on_change=reset_download
                     )
                 if not st.session_state["download"]:
