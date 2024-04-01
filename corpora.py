@@ -271,8 +271,8 @@ if query != "":
                 # DATA DOWNLOAD OPTIONS
                 st.markdown(
                     """
-                    You can download your search results in CSV format to use as translation data. Just set an amount 
-                    to include (the default is the highest of your results and 1,000) and press the buttons.
+                    You can download your search results in a format to use as translation data. Just set an amount to 
+                    include in the download and press the buttons.
                     """
                 )
                 download_quantity = st.number_input(
