@@ -272,7 +272,7 @@ if query != "":
                 st.markdown(
                     """
                     You can download your search results in a format to use as translation data. Just set an amount to 
-                    include in the download and press the buttons.
+                    include in the download and click the buttons to create/download.
                     """
                 )
                 download_quantity = st.number_input(
