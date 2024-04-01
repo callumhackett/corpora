@@ -271,17 +271,17 @@ if query != "":
                 # DATA DOWNLOAD OPTIONS
                 st.markdown(
                     """
-                    You can download your search results in a format to use as translation data. Just set an amount to 
-                    include in the download and click the buttons to create/download.
+                    You can download your search results in a format to use as translation data. Set the options below and click to create/download.
                     """
                 )
                 download_quantity = st.number_input(
-                        "Amount:",
+                        "Amount to download:",
                         min_value=1,
                         max_value=len(entry_texts) or 1,
                         value=len(entry_texts) or 1,
                         on_change=reset_download
                     )
+                tags = st.text_input("Tags (optional)", on_change=reset_download)
                 if not st.session_state["download"]:
                     create_download_button = st.button(
                         "Click to create file", on_click=create_download, key="create_button"
@@ -289,14 +289,14 @@ if query != "":
                 # CREATE CSV DATA FOR DOWNLOAD
                 else:
                     filename = f"{source.replace(' ', '_')}_data_{date.today()}.csv"
-                    csv_header = ["Sentence", "UL Translation", "Date Added", "Date Modified", "Assignee", "Reviewer", "Translation Status", "Translation Level"]
+                    csv_header = ["id", "NL", "UL", "Translation Level", "Ticket Status", "Assignee", "Reviewer", "Tags", "Comment"]
                     with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="w") as f:
                         writer = csv.writer(f)
                         writer.writerow(csv_header)
                         for text in entry_texts[:download_quantity]:
                             text = text.replace('<font color="red"><b>', "")
                             text = text.replace('</b></font>', "")
-                            writer.writerow([text, "", f"{date.today()}", f"{date.today()}", "", "", "", ""])
+                            writer.writerow(["", text, "", "", "NOT_STARTED", "", "", tags, ""])
                     with open(os.path.join(DATA_FOLDER, "download_data.csv"), mode="rb") as f:
                         data_download_button = st.download_button(
                             label="Download file",
