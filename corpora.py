@@ -9,42 +9,41 @@ import streamlit as st
 from nltk.tokenize import sent_tokenize
 
 CACHE_SIZE = 1 # number of compiled corpora to keep in memory
-DATA_FOLDER = "data" # folder with .tsv files of line-separated corpus text and complexity scores
-HOTPOTQA_NOTICE = (
-    """
-    The HotpotQA dataset has been filtered for contexts and questions labelled "hard", as the test set contains only 
-    cases of this kind.
-    """
-)
-MAX_RETURNS = 1000 # maximum number of examples to show in the main results table
+DATA_FOLDER = "data" # folder with TSV files containing source texts, coref-resolved texts and complexity scores
+MAX_RETURNS = 1000 # maximum number of examples to show in the main results table and allow for download
 
 @st.cache_data(max_entries=CACHE_SIZE)
-def compile_corpus(source, resolved):
+def compile_corpus(source, resolved_texts=False):
     """
-    Compile corpus data from a TSV source containing corpus texts and complexity scores.
+    Compile corpus data from a TSV source containing original texts, coref-resolved texts and complexity scores.
 
     The source is chosen by the user in Search Parameters. User options are derived from filenames.
 
     Args:
         source: the name of the dataset (determined by user selection)
-        resolved: a Boolean for whether to load original or coreference-resolved texts
+        resolved_texts: a Boolean for whether to load original or coreference-resolved texts (default False)
     """
     corpus_data = [] # initialise the corpus
     vocab = Counter() # initialise a vocab count
     punctuation = re.compile(r'[,;!/:\(\)\.\?"\[\]]') # define punctuation to enable accurate vocab count
 
     with open(os.path.join(DATA_FOLDER, f"{source.replace(' ', '_')}.tsv"), encoding="utf-8") as f:
-        next(f) # skip the header
+        next(f) # skip the TSV header
         for line in f:
             line = line.split("\t")
-            if not resolved:
-                corpus_data.append({"text":line[0], "score":float(line[2])})
+            original_text = line[0]
+            resolved_text = line[1]
+            score = line[2]
+            if resolved_texts: # load only one of original or resolved text to preserve memory
+                corpus_data.append({"text":resolved_text, "score":float(score)})
+                for word in re.sub(punctuation, "", resolved_text).split():
+                    if word.isalpha():
+                        vocab[word.lower()] += 1
             else:
-                corpus_data.append({"text":line[1], "score":float(line[2])})
-            # count the vocab, correcting for punctuation
-            for word in re.sub(punctuation, "", line[0]).split():
-                if word.isalpha():
-                    vocab[word.lower()] += 1
+                corpus_data.append({"text":original_text, "score":float(score)})
+                for word in re.sub(punctuation, "", original_text).split():
+                    if word.isalpha():
+                        vocab[word.lower()] += 1
 
     return corpus_data, vocab
 
@@ -58,7 +57,7 @@ def find_matches(query, complexity_range, corpus):
     Args:
         query: a RegEx pattern
         complexity_range: a tuple of the min and max complexity values to filter by
-        data: a dict with keys "text" and "score"
+        corpus: a dict with keys "text" and "score"
     """
     dataset_matches = Counter() # initialise a count of entries in the whole dataset with ≥1 match
     in_range_matches = Counter() # initialise a count of entries in the complexity range with ≥1 match
@@ -67,7 +66,7 @@ def find_matches(query, complexity_range, corpus):
     for entry in corpus:
         text = entry["text"] # set the text to search
         score = entry["score"] # set the score of the text
-        in_range = score >= complexity_range[0] and score <= complexity_range[1] # Boolean for in range
+        in_range = score >= complexity_range[0] and score <= complexity_range[1] # Boolean for complexity range
         match = re.findall(query, text) # search the text for matches
         if match:
             for m in set([m.lower() for m in match]): # add to whole dataset count
@@ -129,7 +128,7 @@ with parameters:
     resolve_corefs = st.toggle("Resolve coreferences", on_change=reset_download)
 
     # COMPILE ON USER SELECTION
-    corpus_data, corpus_vocab = compile_corpus(source, resolved=resolve_corefs)
+    corpus_data, corpus_vocab = compile_corpus(source, resolved_texts=resolve_corefs)
     corpus_entry_count = len(corpus_data)
     corpus_vocab_size = len(corpus_vocab)
     corpus_token_count = sum(corpus_vocab.values())
@@ -167,9 +166,7 @@ with corpus_stats:
     vocab_table.index += 1 # set row index to start from 1 instead of 0
     st.dataframe(vocab_table[:1000], use_container_width=True)
     # DATA NOTICES
-    if source.startswith("HotpotQA"):
-        st.caption(HOTPOTQA_NOTICE)
-    elif source == "Spoken English":
+    if source == "Spoken English":
         st.caption(
             """
             The Spoken English source is a sample of the spoken portion of the British National Corpus and is offered as 
